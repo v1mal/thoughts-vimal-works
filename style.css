@@ -1,0 +1,355 @@
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("./assets/fonts/plus-jakarta-sans-500.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("./assets/fonts/plus-jakarta-sans-600.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("./assets/fonts/plus-jakarta-sans-700.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("./assets/fonts/plus-jakarta-sans-800.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+}
+
+:root {
+  --page-bg: #f4f0e8;
+  --text-dark: #1f1d1a;
+  --gap: 0.5rem;
+  --outer-padding: 0.5rem;
+  --card-padding: 10px;
+  --border-color: rgba(31, 29, 26, 0.18);
+  --font-sans: "Plus Jakarta Sans", "Helvetica Neue", Arial, sans-serif;
+  --type-title-size: 2rem;
+  --type-title-line: 0.95;
+  --type-card-size: 1.125rem;
+  --type-card-line: 1.2;
+  --type-date-size: 0.76rem;
+  --type-date-line: 1.15;
+  --type-status-size: 0.82rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--page-bg);
+  color: var(--text-dark);
+  font-family: var(--font-sans);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.page-shell {
+  padding: 0 var(--outer-padding);
+}
+
+.site-header {
+  display: grid;
+  gap: 2px;
+  padding: 14px 0 16px;
+}
+
+.site-title {
+  margin: 0;
+  color: var(--text-dark);
+  font-size: var(--type-title-size);
+  line-height: var(--type-title-line);
+  font-weight: 800;
+}
+
+.status-panel {
+  margin: 0 0 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  font-family: var(--font-sans);
+  font-size: var(--type-status-size);
+  line-height: 1.35;
+  font-weight: 600;
+  background: #ebe5d9;
+}
+
+.toast {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  max-width: min(22rem, calc(100vw - 2rem));
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.75rem;
+  background: rgba(23, 28, 25, 0.96);
+  border: 1px solid rgba(247, 245, 239, 0.08);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+  color: #f7f5ef;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  font-weight: 600;
+  z-index: 20;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(238px, 1fr));
+  gap: var(--gap);
+}
+
+.thought-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  aspect-ratio: 1 / 1;
+  min-height: 238px;
+  padding: var(--card-padding);
+  background: var(--card-bg, #5a8c3d);
+  color: var(--card-fg, var(--text-dark));
+  position: relative;
+  scroll-margin-top: 1rem;
+  transition: box-shadow 220ms ease, transform 220ms ease;
+}
+
+.thought-text,
+.thought-date {
+  margin: 0;
+}
+
+.thought-actions {
+  position: absolute;
+  top: var(--card-padding);
+  right: var(--card-padding);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.card-share {
+  position: relative;
+  z-index: 2;
+}
+
+.share-menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  display: grid;
+  gap: 0.25rem;
+  min-width: 9.5rem;
+  padding: 0.35rem;
+  border-radius: 0.75rem;
+  background: rgba(23, 28, 25, 0.96);
+  border: 1px solid rgba(247, 245, 239, 0.08);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(10px);
+  z-index: 3;
+}
+
+.share-option {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #f7f5ef;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.share-option:hover,
+.share-option:focus-visible {
+  background: rgba(247, 245, 239, 0.08);
+  outline: none;
+}
+
+.share-option-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.share-option-icon svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.thought-text {
+  font-family: var(--font-sans);
+  font-size: var(--type-card-size);
+  line-height: var(--type-card-line);
+  font-weight: 700;
+  max-width: 15ch;
+  text-wrap: pretty;
+}
+
+.thought-date {
+  font-family: var(--font-sans);
+  font-size: var(--type-date-size);
+  line-height: var(--type-date-line);
+  font-weight: 800;
+  color: var(--card-date-fg, currentColor);
+}
+
+.thought-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 14px;
+}
+
+.card-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card-fg, currentColor) 12%, transparent);
+  color: var(--card-fg, currentColor);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(2px);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease,
+    visibility 160ms ease,
+    background-color 160ms ease;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.card-action:hover,
+.card-action:focus-visible {
+  background: color-mix(in srgb, var(--card-fg, currentColor) 18%, transparent);
+}
+
+.card-action:focus-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.card-action svg {
+  width: 1rem;
+  height: 1rem;
+  stroke-width: 2.1;
+}
+
+.thought-card.is-exporting .card-download {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.thought-card.is-exporting .thought-actions,
+.thought-card.is-exporting .share-menu {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.thought-card.is-highlighted {
+  box-shadow: 0 0 0 3px rgba(31, 36, 33, 0.18);
+}
+
+.thought-card:hover .card-action,
+.thought-card:focus-within .card-action {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+@media (max-width: 767px) {
+  :root {
+    --card-padding: 9px;
+    --type-title-size: 1.5rem;
+    --type-card-size: 0.8rem;
+    --type-date-size: 0.72rem;
+  }
+
+  .site-header {
+    padding: 12px 0 14px;
+  }
+
+  .status-panel {
+    margin: 0 0 8px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(156px, 1fr));
+  }
+
+  .thought-card {
+    aspect-ratio: auto;
+    min-height: 172px;
+  }
+
+  .thought-text {
+    max-width: none;
+    font-weight: 600;
+    line-height: 1.26;
+  }
+
+  .card-action {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .share-menu {
+    min-width: 8.75rem;
+  }
+
+  .toast {
+    right: 0.75rem;
+    bottom: 0.75rem;
+  }
+
+}

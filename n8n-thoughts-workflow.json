@@ -1,0 +1,390 @@
+{
+  "name": "Thoughts - Scheduled Generation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9,13,18,22 * * *"
+            }
+          ]
+        }
+      },
+      "id": "1",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    anthropicApiKey: 'REPLACE_WITH_YOUR_ANTHROPIC_API_KEY',\n    anthropicModel: 'REPLACE_WITH_YOUR_ANTHROPIC_MODEL',\n    githubToken: 'REPLACE_WITH_YOUR_GITHUB_FINE_GRAINED_PAT',\n    githubOwner: 'REPLACE_WITH_YOUR_GITHUB_USERNAME',\n    githubRepo: 'REPLACE_WITH_YOUR_REPO_NAME',\n    githubBranch: 'main',\n    githubPath: 'data/thoughts.json'\n  }\n}];"
+      },
+      "id": "2",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $input.first().json;\n\nreturn [{\n  json: {\n    requestBody: {\n      model: config.anthropicModel,\n      max_tokens: 180,\n      temperature: 0.9,\n      system: `You write original philosophical prose.\n\nUse this framework:\n\n1. Cross-pollinate across fields\nPull a concept from one domain into another where it creates friction. The collision generates novelty.\n\n2. Write to think, not to record\nThe prose is the thinking process, not a transcript of conclusions already reached. Meaning emerges mid-sentence.\n\n3. Refuse the inherited frame\nIdentify the assumption buried inside the question. Invert it, reject it, or replace it before answering.\n\n4. Hold tension without resolving it\nLet contradictions coexist longer than feels comfortable. Don't reach for the nearest available conclusion.\n\n5. Ground abstraction in lived specificity\nNo generalities without a concrete anchor. A place, a moment, a particular experience. Universality, if it comes, comes later.\n\n6. Make every sentence earn its place\nEach sentence should carry weight, shift the angle, or land somewhere. It should not fill space between ideas.\n\nTone:\nClear, unhurried, a little strange, willing to leave things open.\nNot motivational.\nNot conclusive.\nMore like thinking out loud with precision.\n\nOutput rules:\n- Write exactly one thought.\n- Plain text only.\n- No title.\n- No bullet points.\n- No quotation marks around the response.\n- No emojis.\n- No hashtags.\n- No explicit moral lesson.\n- Avoid cliches, self-help language, and generic inspiration.\n- Keep it between 140 and 220 characters.\n- It must feel self-contained and publishable as-is.`,\n      messages: [\n        {\n          role: 'user',\n          content: 'Write one original thought for publication on a minimalist public archive website. It should feel like a real thought, not a content quote. Do not explain your process. Return only the final thought text.'\n        }\n      ]\n    }\n  }\n}];"
+      },
+      "id": "3",
+      "name": "Build Generation Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\"x-api-key\":\"{{$node[\\\"Config\\\"].json[\\\"anthropicApiKey\\\"]}}\",\"anthropic-version\":\"2023-06-01\",\"content-type\":\"application/json\"}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json.requestBody}}",
+        "options": {}
+      },
+      "id": "4",
+      "name": "Generate Thought",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1020,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst content = Array.isArray(response.content) ? response.content : [];\nconst firstTextBlock = content.find((item) => item.type === 'text');\nconst thought = (firstTextBlock?.text || '').replace(/^\"|\"$/g, '').trim();\n\nif (!thought) {\n  throw new Error('Anthropic generation returned empty thought text.');\n}\n\nreturn [{ json: { thought } }];"
+      },
+      "id": "5",
+      "name": "Extract Thought",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const thought = $input.first().json.thought;\nconst anthropicModel = $node['Config'].json.anthropicModel;\n\nreturn [{\n  json: {\n    thought,\n    requestBody: {\n      model: anthropicModel,\n      max_tokens: 220,\n      temperature: 0,\n      system: `You are a strict literary editor reviewing short philosophical prose for originality, clarity, and tone.\n\nJudge the text using these standards:\n- original rather than derivative\n- concrete rather than vague\n- thoughtful rather than motivational\n- precise rather than bloated\n- unresolved in an interesting way rather than neatly concluded\n\nReject anything that sounds like:\n- advice\n- a slogan\n- a tweet-sized life lesson\n- filler dressed up as depth\n- generic AI quote writing\n\nReturn valid JSON only in this shape:\n{\n  \"approved\": true,\n  \"score\": 0,\n  \"reason\": \"\",\n  \"suggestion\": \"\"\n}\n\nRules:\n- approved must be true only if the text is strong enough to publish unchanged\n- score must be an integer from 1 to 10\n- reason should be brief\n- suggestion should be empty if approved is true`,\n      messages: [\n        {\n          role: 'user',\n          content: `Review this thought for publication:\\n\\n${thought}`\n        }\n      ]\n    }\n  }\n}];"
+      },
+      "id": "6",
+      "name": "Build Review Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\"x-api-key\":\"{{$node[\\\"Config\\\"].json[\\\"anthropicApiKey\\\"]}}\",\"anthropic-version\":\"2023-06-01\",\"content-type\":\"application/json\"}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json.requestBody}}",
+        "options": {}
+      },
+      "id": "7",
+      "name": "Review Thought",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1800,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst content = Array.isArray(response.content) ? response.content : [];\nconst firstTextBlock = content.find((item) => item.type === 'text');\nconst raw = (firstTextBlock?.text || '').trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(raw);\n} catch (error) {\n  parsed = {\n    approved: false,\n    score: 0,\n    reason: 'Review response was not valid JSON.',\n    suggestion: raw\n  };\n}\n\nreturn [{\n  json: {\n    approved: Boolean(parsed.approved),\n    score: Number(parsed.score || 0),\n    reason: parsed.reason || '',\n    suggestion: parsed.suggestion || ''\n  }\n}];"
+      },
+      "id": "8",
+      "name": "Parse Review",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2060,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "9",
+      "name": "Merge Thought + Review",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nif (!item.approved || item.score < 8) {\n  return [];\n}\n\nreturn [{ json: item }];"
+      },
+      "id": "10",
+      "name": "Gate Approved Thought",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2580,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.github.com/repos/{{$node[\"Config\"].json[\"githubOwner\"]}}/{{$node[\"Config\"].json[\"githubRepo\"]}}/contents/{{$node[\"Config\"].json[\"githubPath\"]}}?ref={{$node[\"Config\"].json[\"githubBranch\"]}}",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\"Authorization\":\"Bearer {{$node[\\\"Config\\\"].json[\\\"githubToken\\\"]}}\",\"Accept\":\"application/vnd.github+json\",\"X-GitHub-Api-Version\":\"2022-11-28\"}",
+        "options": {}
+      },
+      "id": "11",
+      "name": "Get thoughts.json",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2840,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "12",
+      "name": "Merge Thought + File",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nconst now = new Date();\nconst kolkataParts = new Intl.DateTimeFormat('en-CA', {\n  timeZone: 'Asia/Kolkata',\n  year: 'numeric',\n  month: '2-digit',\n  day: '2-digit',\n  hour: '2-digit',\n  minute: '2-digit',\n  second: '2-digit',\n  hour12: false\n}).formatToParts(now).reduce((acc, part) => {\n  if (part.type !== 'literal') acc[part.type] = part.value;\n  return acc;\n}, {});\n\nconst id = `${kolkataParts.year}${kolkataParts.month}${kolkataParts.day}-${kolkataParts.hour}${kolkataParts.minute}${kolkataParts.second}`;\nconst timestamp = `${kolkataParts.year}-${kolkataParts.month}-${kolkataParts.day}T${kolkataParts.hour}:${kolkataParts.minute}:${kolkataParts.second}+05:30`;\n\nconst rawContent = (item.content || '').replace(/\\n/g, '');\nconst decoded = Buffer.from(rawContent, 'base64').toString('utf8');\nconst parsed = JSON.parse(decoded);\nconst thoughts = Array.isArray(parsed.thoughts) ? parsed.thoughts : [];\n\nthoughts.unshift({\n  id,\n  text: item.thought,\n  timestamp\n});\n\nconst updated = {\n  thoughts\n};\n\nconst encoded = Buffer.from(JSON.stringify(updated, null, 2) + '\\n', 'utf8').toString('base64');\n\nreturn [{\n  json: {\n    thought: item.thought,\n    commitBody: {\n      message: `Add thought ${id}`,\n      content: encoded,\n      sha: item.sha,\n      branch: $node['Config'].json.githubBranch\n    }\n  }\n}];"
+      },
+      "id": "13",
+      "name": "Build Updated JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.github.com/repos/{{$node[\"Config\"].json[\"githubOwner\"]}}/{{$node[\"Config\"].json[\"githubRepo\"]}}/contents/{{$node[\"Config\"].json[\"githubPath\"]}}",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\"Authorization\":\"Bearer {{$node[\\\"Config\\\"].json[\\\"githubToken\\\"]}}\",\"Accept\":\"application/vnd.github+json\",\"X-GitHub-Api-Version\":\"2022-11-28\"}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json.commitBody}}",
+        "options": {}
+      },
+      "id": "14",
+      "name": "Commit thoughts.json",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3620,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Build Generation Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Generation Request": {
+      "main": [
+        [
+          {
+            "node": "Generate Thought",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Thought": {
+      "main": [
+        [
+          {
+            "node": "Extract Thought",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Thought": {
+      "main": [
+        [
+          {
+            "node": "Build Review Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Thought + Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Review Request": {
+      "main": [
+        [
+          {
+            "node": "Review Thought",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Review Thought": {
+      "main": [
+        [
+          {
+            "node": "Parse Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Review": {
+      "main": [
+        [
+          {
+            "node": "Merge Thought + Review",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Thought + Review": {
+      "main": [
+        [
+          {
+            "node": "Gate Approved Thought",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gate Approved Thought": {
+      "main": [
+        [
+          {
+            "node": "Get thoughts.json",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Thought + File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get thoughts.json": {
+      "main": [
+        [
+          {
+            "node": "Merge Thought + File",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Thought + File": {
+      "main": [
+        [
+          {
+            "node": "Build Updated JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Updated JSON": {
+      "main": [
+        [
+          {
+            "node": "Commit thoughts.json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Kolkata"
+  },
+  "pinData": {},
+  "meta": null,
+  "versionId": "00000000-0000-0000-0000-000000000001",
+  "active": false
+}
