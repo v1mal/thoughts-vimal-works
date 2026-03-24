@@ -124,7 +124,7 @@ body {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(238px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--gap);
 }
 
@@ -133,7 +133,6 @@ body {
   flex-direction: column;
   justify-content: space-between;
   aspect-ratio: 1 / 1;
-  min-height: 260px;
   padding: var(--card-padding);
   background: var(--card-bg, #5a8c3d);
   color: var(--card-fg, var(--text-dark));
@@ -324,12 +323,7 @@ body {
   }
 
   .grid {
-    grid-template-columns: repeat(auto-fit, minmax(156px, 1fr));
-  }
-
-  .thought-card {
-    aspect-ratio: auto;
-    min-height: 172px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .thought-text {
@@ -352,4 +346,28 @@ body {
     bottom: 0.75rem;
   }
 
+}
+
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1440px) {
+  .grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1800px) {
+  .grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
 }
