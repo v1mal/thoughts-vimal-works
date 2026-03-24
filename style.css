@@ -229,6 +229,25 @@ body {
   color: var(--card-date-fg, currentColor);
 }
 
+.thought-meta {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.thought-link {
+  color: var(--card-date-fg, currentColor);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  line-height: 1.2;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.thought-link:hover,
+.thought-link:focus-visible {
+  text-decoration: none;
+}
+
 .thought-footer {
   display: flex;
   align-items: flex-end;
