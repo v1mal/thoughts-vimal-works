@@ -133,7 +133,7 @@ body {
   flex-direction: column;
   justify-content: space-between;
   aspect-ratio: 1 / 1;
-  min-height: 238px;
+  min-height: 260px;
   padding: var(--card-padding);
   background: var(--card-bg, #5a8c3d);
   color: var(--card-fg, var(--text-dark));
