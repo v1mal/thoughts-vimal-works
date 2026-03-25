@@ -39,10 +39,17 @@ const statusPanel = document.querySelector("[data-status]");
 const template = document.querySelector("#thought-card-template");
 const main = document.querySelector("main");
 const toast = document.querySelector("[data-toast]");
+const thoughtModalOverlay = document.querySelector("[data-thought-modal]");
+const thoughtModal = thoughtModalOverlay?.querySelector(".thought-modal");
+const thoughtModalCloseButton = thoughtModalOverlay?.querySelector(".thought-modal-close");
+const thoughtModalText = thoughtModalOverlay?.querySelector(".thought-modal-text");
+const thoughtModalDate = thoughtModalOverlay?.querySelector(".thought-modal-date");
+const thoughtModalLink = thoughtModalOverlay?.querySelector(".thought-modal-link");
 const siteUrlMeta = document.querySelector('meta[name="site-url"]');
 const canonicalSiteUrl = siteUrlMeta?.content || window.location.origin || window.location.href;
 let activeShareMenu = null;
 let toastTimeoutId = null;
+let renderedThoughts = [];
 
 function setStatus(message) {
   statusPanel.hidden = false;
@@ -170,28 +177,67 @@ function highlightThoughtCard(card) {
   card.classList.add("is-highlighted");
   window.setTimeout(() => {
     card.classList.remove("is-highlighted");
-  }, 1800);
+  }, 2200);
 }
 
-function focusThoughtFromHash() {
+function getThoughtById(thoughtId) {
+  return renderedThoughts.find((thought) => thought.id === thoughtId) || null;
+}
+
+function closeThoughtModal({ clearHash = true } = {}) {
+  if (!thoughtModalOverlay) {
+    return;
+  }
+
+  thoughtModalOverlay.hidden = true;
+  document.body.style.overflow = "";
+
+  if (clearHash && window.location.hash) {
+    history.replaceState(null, "", window.location.pathname + window.location.search);
+  }
+}
+
+function openThoughtModal(thought) {
+  if (!thoughtModalOverlay || !thoughtModal || !thoughtModalText || !thoughtModalDate || !thoughtModalLink) {
+    return;
+  }
+
+  const color = colors[hashString(thought.id) % colors.length];
+  const style = cardStyles[color] ?? {
+    background: color,
+    foreground: "#1f1d1a",
+    date: "#4f5a53",
+  };
+
+  thoughtModal.style.setProperty("--modal-bg", style.background);
+  thoughtModal.style.setProperty("--modal-fg", style.foreground);
+  thoughtModal.style.setProperty("--modal-date-fg", style.date);
+
+  thoughtModalText.textContent = thought.text;
+  thoughtModalDate.textContent = formatDate(thought.timestamp);
+  thoughtModalDate.dateTime = thought.timestamp;
+  thoughtModalLink.href = buildThoughtUrl(thought.id);
+
+  thoughtModalOverlay.hidden = false;
+  document.body.style.overflow = "hidden";
+  thoughtModalCloseButton?.focus();
+}
+
+function syncThoughtModalWithHash() {
   const hash = window.location.hash.replace(/^#/, "");
 
   if (!hash) {
+    closeThoughtModal({ clearHash: false });
     return;
   }
 
-  const card = document.getElementById(`thought-${CSS.escape(hash)}`);
+  const thought = getThoughtById(hash);
 
-  if (!card) {
+  if (!thought) {
     return;
   }
 
-  card.scrollIntoView({
-    block: "nearest",
-    behavior: "smooth",
-  });
-
-  highlightThoughtCard(card);
+  openThoughtModal(thought);
 }
 
 async function shareThought(platform, button) {
@@ -209,6 +255,14 @@ async function shareThought(platform, button) {
       break;
     case "threads":
       openShareWindow(`https://www.threads.net/intent/post?text=${text}`);
+      break;
+    case "copy-link":
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("Clipboard not available");
+      }
+
+      await navigator.clipboard.writeText(payload.url);
+      showToast("Link copied.");
       break;
     case "linkedin":
       openShareWindow(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`);
@@ -260,6 +314,7 @@ async function exportThoughtCard(button) {
 }
 
 function renderThoughts(thoughts) {
+  renderedThoughts = thoughts;
   const fragment = document.createDocumentFragment();
 
   thoughts.forEach((thought) => {
@@ -305,7 +360,7 @@ function renderThoughts(thoughts) {
     window.lucide.createIcons();
   }
 
-  focusThoughtFromHash();
+  syncThoughtModalWithHash();
 }
 
 function isValidThought(thought) {
@@ -375,6 +430,11 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !thoughtModalOverlay?.hidden) {
+    closeThoughtModal();
+    return;
+  }
+
   if (event.key === "Escape" && activeShareMenu) {
     closeShareMenu(activeShareMenu, { restoreFocus: true });
     return;
@@ -416,7 +476,17 @@ document.addEventListener("keydown", (event) => {
 });
 
 window.addEventListener("hashchange", () => {
-  focusThoughtFromHash();
+  syncThoughtModalWithHash();
+});
+
+thoughtModalOverlay?.addEventListener("click", (event) => {
+  if (event.target === thoughtModalOverlay) {
+    closeThoughtModal();
+  }
+});
+
+thoughtModalCloseButton?.addEventListener("click", () => {
+  closeThoughtModal();
 });
 
 async function loadThoughts() {
