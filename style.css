@@ -164,15 +164,23 @@ body {
   padding: 0;
   border: 0;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--modal-fg, currentColor) 12%, transparent);
-  color: var(--modal-fg, currentColor);
+  background: rgba(244, 240, 232, 0.72);
+  color: #1f2421;
   cursor: pointer;
+  z-index: 31;
+  box-shadow: none;
 }
 
 .thought-modal-close svg {
   width: 1rem;
   height: 1rem;
   stroke-width: 2.2;
+}
+
+.thought-modal-close:focus,
+.thought-modal-close:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 .thought-modal-text {

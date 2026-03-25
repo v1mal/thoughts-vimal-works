@@ -32,21 +32,21 @@
       <div class="toast" data-toast hidden aria-live="polite" aria-atomic="true"></div>
 
       <div class="thought-modal-overlay" data-thought-modal hidden>
+        <button
+          class="thought-modal-close"
+          type="button"
+          aria-label="Close thought"
+          title="Close thought"
+        >
+          <i data-lucide="x"></i>
+        </button>
+
         <div
           class="thought-modal"
           role="dialog"
           aria-modal="true"
           aria-labelledby="thought-modal-text"
         >
-          <button
-            class="thought-modal-close"
-            type="button"
-            aria-label="Close thought"
-            title="Close thought"
-          >
-            <i data-lucide="x"></i>
-          </button>
-
           <div class="thought-modal-body">
             <p class="thought-modal-text" id="thought-modal-text"></p>
 
