@@ -18,7 +18,7 @@ const cardStyles = {
     date: "#d7ebe6",
   },
   "#49a078": {
-    background: "#49a078",
+    background: "#85C7AA",
     foreground: "#0c1f1f",
     date: "#123030",
   },
