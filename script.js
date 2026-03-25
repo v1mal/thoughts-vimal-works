@@ -19,18 +19,18 @@ const cardStyles = {
   },
   "#49a078": {
     background: "#49a078",
-    foreground: "#102a2a",
-    date: "#173737",
+    foreground: "#0c1f1f",
+    date: "#123030",
   },
   "#9cc5a1": {
     background: "#9cc5a1",
-    foreground: "#102a2a",
-    date: "#25423a",
+    foreground: "#102020",
+    date: "#173030",
   },
   "#dce1de": {
     background: "#dce1de",
     foreground: "#1f2421",
-    date: "#4f5a53",
+    date: "#2f3933",
   },
 };
 
@@ -50,6 +50,7 @@ const canonicalSiteUrl = siteUrlMeta?.content || window.location.origin || windo
 let activeShareMenu = null;
 let toastTimeoutId = null;
 let renderedThoughts = [];
+let htmlToImageLoader = null;
 
 function setStatus(message) {
   statusPanel.hidden = false;
@@ -108,6 +109,27 @@ function downloadDataUrl(dataUrl, filename) {
   document.body.appendChild(link);
   link.click();
   link.remove();
+}
+
+function loadHtmlToImage() {
+  if (window.htmlToImage) {
+    return Promise.resolve(window.htmlToImage);
+  }
+
+  if (htmlToImageLoader) {
+    return htmlToImageLoader;
+  }
+
+  htmlToImageLoader = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "./assets/vendor/html-to-image.min.js";
+    script.async = true;
+    script.onload = () => resolve(window.htmlToImage);
+    script.onerror = () => reject(new Error("Failed to load export library"));
+    document.head.appendChild(script);
+  });
+
+  return htmlToImageLoader;
 }
 
 function getShareOptions(menu) {
@@ -278,7 +300,7 @@ async function shareThought(platform, button) {
 async function exportThoughtCard(button) {
   const card = button.closest(".thought-card");
 
-  if (!card || !window.htmlToImage) {
+  if (!card) {
     return;
   }
 
@@ -288,9 +310,10 @@ async function exportThoughtCard(button) {
   button.disabled = true;
 
   try {
+    const htmlToImage = await loadHtmlToImage();
     await document.fonts.ready;
 
-    const dataUrl = await window.htmlToImage.toPng(card, {
+    const dataUrl = await htmlToImage.toPng(card, {
       pixelRatio: Math.max(2, window.devicePixelRatio || 1),
       cacheBust: true,
       filter: (node) => {
@@ -355,11 +378,6 @@ function renderThoughts(thoughts) {
   });
 
   grid.replaceChildren(fragment);
-
-  if (window.lucide) {
-    window.lucide.createIcons();
-  }
-
   syncThoughtModalWithHash();
 }
 

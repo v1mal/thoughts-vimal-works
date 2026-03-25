@@ -3,15 +3,34 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Thoughts</title>
+    <title>Thoughts by Vimal Kandoth</title>
     <meta
       name="description"
-      content="A static archive wall of AI-generated thoughts."
+      content="A living archive of short philosophical thoughts, published throughout the day. A quiet experiment in thinking out loud. AI-assisted, human-curated."
+    />
+    <meta
+      name="keywords"
+      content="philosophical prose, daily thoughts, original thinking, AI-assisted writing, minimalist archive, vimal.works, vimal kandoth"
     />
     <meta name="site-url" content="https://thoughts.vimal.works/" />
     <link rel="canonical" href="https://thoughts.vimal.works/" />
-    <script src="./assets/vendor/html-to-image.min.js"></script>
-    <script src="./assets/vendor/lucide.min.js"></script>
+    <meta property="og:title" content="Thoughts by Vimal Kandoth" />
+    <meta
+      property="og:description"
+      content="A living archive of short philosophical thoughts, published throughout the day. A quiet experiment in thinking out loud. AI-assisted, human-curated."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://thoughts.vimal.works/" />
+    <meta property="og:site_name" content="Thoughts by Vimal Kandoth" />
+    <meta property="og:image" content="https://thoughts.vimal.works/og-image.jpg" />
+    <meta property="og:image:alt" content="Thoughts by Vimal Kandoth" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Thoughts by Vimal Kandoth" />
+    <meta
+      name="twitter:description"
+      content="A living archive of short philosophical thoughts, published throughout the day. A quiet experiment in thinking out loud. AI-assisted, human-curated."
+    />
+    <meta name="twitter:image" content="https://thoughts.vimal.works/og-image.jpg" />
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
@@ -38,7 +57,10 @@
           aria-label="Close thought"
           title="Close thought"
         >
-          <i data-lucide="x"></i>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2">
+            <path d="M18 6 6 18"></path>
+            <path d="m6 6 12 12"></path>
+          </svg>
         </button>
 
         <div
@@ -79,7 +101,13 @@
             aria-haspopup="menu"
             aria-expanded="false"
           >
-            <i data-lucide="share-2"></i>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.1">
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <path d="m8.59 13.51 6.83 3.98"></path>
+              <path d="m15.41 7.51-6.82 3.98"></path>
+            </svg>
           </button>
           <div class="share-menu" role="menu" hidden>
             <button class="share-option" type="button" role="menuitem" data-platform="whatsapp">
@@ -161,7 +189,11 @@
             aria-label="Download thought"
             title="Download thought"
           >
-            <i data-lucide="download"></i>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.1">
+              <path d="M12 3v12"></path>
+              <path d="m7 10 5 5 5-5"></path>
+              <path d="M5 21h14"></path>
+            </svg>
           </button>
         </div>
       </article>

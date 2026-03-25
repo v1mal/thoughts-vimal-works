@@ -1,0 +1,23 @@
+# Thoughts by Vimal Kandoth
+
+Website: https://thoughts.vimal.works/
+Description: A living archive of short philosophical thoughts, published throughout the day. A quiet experiment in thinking out loud. AI-assisted, human-curated.
+
+## Access
+- Public website content may be read and indexed.
+- Content is short-form and presented as part of a public archive.
+
+## Attribution
+- Please attribute the source as "Thoughts by Vimal Kandoth" and link to https://thoughts.vimal.works/ when referencing or quoting.
+
+## Data
+- Thoughts Data: https://thoughts.vimal.works/data/thoughts.json
+- Raw JSON feed of all published thoughts with timestamps.
+
+## Notes
+- Individual thoughts are part of an evolving archive and may gain context from neighboring entries.
+- AI assistance is used in generation, with human curation shaping what is published.
+
+## Canonical
+- Canonical homepage: https://thoughts.vimal.works/
+- Canonical thought links use hash-based URLs on the homepage.

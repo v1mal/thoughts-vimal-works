@@ -11,6 +11,8 @@ Static GitHub Pages site for `thoughts.vimal.works`.
 - `assets/fonts/` - local Plus Jakarta Sans font files
 - `assets/vendor/` - local browser dependencies
 - `CNAME` - GitHub Pages custom domain
+- `robots.txt` - crawler directives
+- `sitemap.xml` - sitemap for search engines
 
 ## Local preview
 
