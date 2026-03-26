@@ -258,7 +258,7 @@ async function boot() {
   if (!isConfigured()) {
     showMessage(
       setupMessage,
-      "Edit admin-config.js with your Supabase project URL, anon key, and optional export webhook URL before using this page.",
+      "Edit assets/js/admin-config.js with your project URL, publishable key, and allowed email before using this page.",
     );
     authPanel.hidden = true;
     return;
