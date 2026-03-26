@@ -1,0 +1,819 @@
+{
+  "name": "Thoughts - Supabase Generation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9,13,18,22 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2600,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { anthropicApiKey: 'REPLACE_WITH_ANTHROPIC_API_KEY', anthropicModel: 'claude-opus-4-6', reviewModel: 'claude-sonnet-4-6', supabaseUrl: 'REPLACE_WITH_SUPABASE_URL', supabaseServiceRoleKey: 'REPLACE_WITH_SUPABASE_SERVICE_ROLE_KEY', notificationEmail: 'vimal@nusigma.in' } }];"
+      },
+      "id": "config",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2360,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Config').item.json.supabaseUrl + '/rest/v1/thoughts?select=text_original,text_published,status,timestamp_ist&status=in.(pending,approved)&order=timestamp_ist.desc&limit=20' }}",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\"apikey\":\"{{ $('Config').item.json.supabaseServiceRoleKey }}\",\"Authorization\":\"Bearer {{ $('Config').item.json.supabaseServiceRoleKey }}\"}",
+        "options": {}
+      },
+      "id": "recent",
+      "name": "Get Recent Thoughts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2120,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = Array.isArray($input.first().json) ? $input.first().json : $input.all().map((item) => item.json);\nconst recentTexts = items.map((item) => item.text_published || item.text_original).filter(Boolean);\nreturn [{ json: { recentTexts } }];"
+      },
+      "id": "parse_recent",
+      "name": "Parse Recent Thoughts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1880,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $('Config').item.json;\nconst recentTexts = $('Parse Recent Thoughts').item.json.recentTexts || [];\nconst domains = ['latency','signal','the algorithm','frequency','resonance','the loop','projection','the pixel','glitch','the grid','territory','the backstreet','improvisation','leverage','the invoice','drift','the road','friction','craft','repair','the joint','the scene','threshold','naming','the commons','maintenance','the credit','emergence','feedback','scaffolding','fermentation','cartography','translation','sleep','geometry','childhood','cooking'];\nconst seed = domains[Math.floor(Math.random() * domains.length)];\nconst recentContext = recentTexts.length > 0 ? `\\n\\nDo not repeat themes, metaphors, or structural moves from these recent publications:\\n${recentTexts.map((text) => `- ${text}`).join('\\n')}` : '';\nreturn [{ json: { seed, requestBody: { model: config.anthropicModel, max_tokens: 180, temperature: 0.9, system: `You write original philosophical prose.\\n\\nUse this framework:\\n\\n1. Cross-pollinate across fields\\nPull a concept from one domain into another where it creates friction. The collision generates novelty.\\n\\n2. Write to think, not to record\\nThe prose is the thinking process, not a transcript of conclusions already reached. Meaning emerges mid-sentence.\\n\\n3. Refuse the inherited frame\\nIdentify the assumption buried inside the question. Invert it, reject it, or replace it before answering.\\n\\n4. Hold tension without resolving it\\nLet contradictions coexist longer than feels comfortable. Don't reach for the nearest available conclusion.\\n\\n5. Ground abstraction in lived specificity\\nNo generalities without a concrete anchor. A place, a moment, a particular experience. Universality, if it comes, comes later.\\n\\n6. Make every sentence earn its place\\nEach sentence should carry weight, shift the angle, or land somewhere. It should not fill space between ideas.\\n\\nStructural rules:\\n- Make exactly one move. One inversion, one reframe, one observation. Not two or three compressed together.\\n- Do not follow this pattern: \\\"X doesn't do Y. It does Z, which is actually about us.\\\" Find a different shape.\\n- Do not end by turning the insight back toward the human condition or perception in general.\\n- Vary your rhetorical structure. Avoid repeating the same sentence shape across outputs.\\n\\nTone:\\nClear, unhurried, a little strange, willing to leave things open.\\nNot motivational.\\nNot conclusive.\\nMore like thinking out loud with precision.\\nClear, understated, and personal without being sentimental.\\nShort sentences where possible.\\nNo em dashes.\\nNo filler phrases or over-explanation.\\nWhen in doubt, cut it.\\n\\nOutput rules:\\n- Write exactly one thought.\\n- Plain text only.\\n- No title.\\n- No bullet points.\\n- No quotation marks around the response.\\n- No em dashes.\\n- No emojis.\\n- No hashtags.\\n- No explicit moral lesson.\\n- Avoid cliches, self-help language, and generic inspiration.\\n- Keep it between 90 and 220 characters.\\n- It must feel self-contained and publishable as-is.`, messages: [{ role: 'user', content: `Write one original thought for publication on a minimalist public archive website. It should feel like a real thought, not a content quote. Do not explain your process. Return only the final thought text. Starting domain: ${seed}.${recentContext}` }] } } }];"
+      },
+      "id": "build_gen_1",
+      "name": "Build Gen Request 1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1640,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\"x-api-key\":\"{{ $('Config').item.json.anthropicApiKey }}\",\"anthropic-version\":\"2023-06-01\",\"content-type\":\"application/json\"}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json.requestBody}}",
+        "options": {}
+      },
+      "id": "generate_1",
+      "name": "Generate Thought 1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1400,
+        240
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = Array.isArray($input.first().json.content) ? $input.first().json.content : [];\nconst firstTextBlock = content.find((item) => item.type === 'text');\nconst thought = (firstTextBlock?.text || '').replace(/^\"|\"$/g, '').trim();\nif (!thought) throw new Error('Generation returned empty thought text.');\nreturn [{ json: { thought } }];"
+      },
+      "id": "extract_1",
+      "name": "Extract Thought 1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1160,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const thought = $input.first().json.thought;\nconst reviewModel = $('Config').item.json.reviewModel;\nreturn [{ json: { thought, requestBody: { model: reviewModel, max_tokens: 220, temperature: 0, system: `You are a strict literary editor reviewing short philosophical prose for originality, clarity, and tone.\\n\\nJudge the text using these standards:\\n- original rather than derivative\\n- concrete rather than vague\\n- thoughtful rather than motivational\\n- precise rather than bloated\\n- unresolved in an interesting way rather than neatly concluded\\n- structurally distinctive rather than following a familiar template\\n\\nReject anything that sounds like:\\n- advice\\n- a slogan\\n- a tweet-sized life lesson\\n- filler dressed up as depth\\n- generic AI quote writing\\n\\nReturn valid JSON only in this shape:\\n{\\n  \\\"approved\\\": true,\\n  \\\"score\\\": 0,\\n  \\\"reason\\\": \\\"\\\",\\n  \\\"suggestion\\\": \\\"\\\"\\n}\\n\\nRules:\\n- approved must be true only if the text is strong enough to publish unchanged\\n- score must be an integer from 1 to 10\\n- reason should be one sentence explaining the score\\n- if approved is false, suggestion must describe what specifically failed and what a better version would do differently\\n- if approved is true, suggestion should be empty`, messages: [{ role: 'user', content: `Review this thought for publication:\\n\\n${thought}` }] } } }];"
+      },
+      "id": "build_review_1",
+      "name": "Build Review Request 1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -920,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\"x-api-key\":\"{{ $('Config').item.json.anthropicApiKey }}\",\"anthropic-version\":\"2023-06-01\",\"content-type\":\"application/json\"}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json.requestBody}}",
+        "options": {}
+      },
+      "id": "review_1",
+      "name": "Review Thought 1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -680,
+        240
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst thought = $('Extract Thought 1').item.json.thought;\nif (thought.length < 90 || thought.length > 220) {\n  return [{ json: { approved: false, score: 0, reason: `Length ${thought.length} chars (must be 90-220).`, suggestion: 'Thought failed length validation. Generate a new thought between 90 and 220 characters.' } }];\n}\nconst content = Array.isArray(response.content) ? response.content : [];\nconst firstTextBlock = content.find((item) => item.type === 'text');\nconst rawText = firstTextBlock?.text || '';\nlet parsed;\ntry { parsed = JSON.parse(rawText.trim()); } catch (error) { parsed = { approved: false, score: 0, reason: 'Review response was not valid JSON.', suggestion: rawText }; }\nreturn [{ json: parsed }];"
+      },
+      "id": "parse_review_1",
+      "name": "Parse Review 1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -440,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "merge_1",
+      "name": "Merge Thought + Review 1",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -200,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.approved}}",
+              "value2": true
+            }
+          ],
+          "number": [
+            {
+              "value1": "={{$json.score}}",
+              "operation": "largerEqual",
+              "value2": 8
+            }
+          ]
+        }
+      },
+      "id": "gate_1",
+      "name": "IF Gate 1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        40,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $('Config').item.json;\nconst round1Seed = $('Build Gen Request 1').item.json.seed;\nconst suggestion = $json.suggestion || '';\nconst recentTexts = $('Parse Recent Thoughts').item.json.recentTexts || [];\nconst domains = ['latency','signal','the algorithm','frequency','resonance','the loop','projection','the pixel','glitch','the grid','territory','the backstreet','improvisation','leverage','the invoice','drift','the road','friction','craft','repair','the joint','the scene','threshold','naming','the commons','maintenance','the credit','emergence','feedback','scaffolding','fermentation','cartography','translation','sleep','geometry','childhood','cooking'];\nconst available = domains.filter((domain) => domain !== round1Seed);\nconst seed = available[Math.floor(Math.random() * available.length)];\nconst rejectionContext = suggestion ? `\\n\\nA previous attempt was rejected. Reviewer note: \\\"${suggestion}\\\". Write something structurally and thematically different.` : '';\nconst recentContext = recentTexts.length > 0 ? `\\n\\nDo not repeat themes, metaphors, or structural moves from these recent publications:\\n${recentTexts.map((text) => `- ${text}`).join('\\n')}` : '';\nreturn [{ json: { seed, requestBody: { model: config.anthropicModel, max_tokens: 180, temperature: 0.9, system: `You write original philosophical prose.\\n\\nUse this framework:\\n\\n1. Cross-pollinate across fields\\nPull a concept from one domain into another where it creates friction. The collision generates novelty.\\n\\n2. Write to think, not to record\\nThe prose is the thinking process, not a transcript of conclusions already reached. Meaning emerges mid-sentence.\\n\\n3. Refuse the inherited frame\\nIdentify the assumption buried inside the question. Invert it, reject it, or replace it before answering.\\n\\n4. Hold tension without resolving it\\nLet contradictions coexist longer than feels comfortable. Don't reach for the nearest available conclusion.\\n\\n5. Ground abstraction in lived specificity\\nNo generalities without a concrete anchor. A place, a moment, a particular experience. Universality, if it comes, comes later.\\n\\n6. Make every sentence earn its place\\nEach sentence should carry weight, shift the angle, or land somewhere. It should not fill space between ideas.\\n\\nStructural rules:\\n- Make exactly one move. One inversion, one reframe, one observation. Not two or three compressed together.\\n- Do not follow this pattern: \\\"X doesn't do Y. It does Z, which is actually about us.\\\" Find a different shape.\\n- Do not end by turning the insight back toward the human condition or perception in general.\\n- Vary your rhetorical structure. Avoid repeating the same sentence shape across outputs.\\n\\nTone:\\nClear, unhurried, a little strange, willing to leave things open.\\nNot motivational.\\nNot conclusive.\\nMore like thinking out loud with precision.\\nClear, understated, and personal without being sentimental.\\nShort sentences where possible.\\nNo em dashes.\\nNo filler phrases or over-explanation.\\nWhen in doubt, cut it.\\n\\nOutput rules:\\n- Write exactly one thought.\\n- Plain text only.\\n- No title.\\n- No bullet points.\\n- No quotation marks around the response.\\n- No em dashes.\\n- No emojis.\\n- No hashtags.\\n- No explicit moral lesson.\\n- Avoid cliches, self-help language, and generic inspiration.\\n- Keep it between 90 and 220 characters.\\n- It must feel self-contained and publishable as-is.`, messages: [{ role: 'user', content: `Write one original thought for publication on a minimalist public archive website. It should feel like a real thought, not a content quote. Do not explain your process. Return only the final thought text. Starting domain: ${seed}.${rejectionContext}${recentContext}` }] } } }];"
+      },
+      "id": "build_gen_2",
+      "name": "Build Gen Request 2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        40,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\"x-api-key\":\"{{ $('Config').item.json.anthropicApiKey }}\",\"anthropic-version\":\"2023-06-01\",\"content-type\":\"application/json\"}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json.requestBody}}",
+        "options": {}
+      },
+      "id": "generate_2",
+      "name": "Generate Thought 2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        520
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = Array.isArray($input.first().json.content) ? $input.first().json.content : [];\nconst firstTextBlock = content.find((item) => item.type === 'text');\nconst thought = (firstTextBlock?.text || '').replace(/^\"|\"$/g, '').trim();\nif (!thought) throw new Error('Generation returned empty thought text.');\nreturn [{ json: { thought } }];"
+      },
+      "id": "extract_2",
+      "name": "Extract Thought 2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const thought = $input.first().json.thought;\nconst reviewModel = $('Config').item.json.reviewModel;\nreturn [{ json: { thought, requestBody: { model: reviewModel, max_tokens: 220, temperature: 0, system: `You are a strict literary editor reviewing short philosophical prose for originality, clarity, and tone.\\n\\nJudge the text using these standards:\\n- original rather than derivative\\n- concrete rather than vague\\n- thoughtful rather than motivational\\n- precise rather than bloated\\n- unresolved in an interesting way rather than neatly concluded\\n- structurally distinctive rather than following a familiar template\\n\\nReject anything that sounds like:\\n- advice\\n- a slogan\\n- a tweet-sized life lesson\\n- filler dressed up as depth\\n- generic AI quote writing\\n\\nReturn valid JSON only in this shape:\\n{\\n  \\\"approved\\\": true,\\n  \\\"score\\\": 0,\\n  \\\"reason\\\": \\\"\\\",\\n  \\\"suggestion\\\": \\\"\\\"\\n}\\n\\nRules:\\n- approved must be true only if the text is strong enough to publish unchanged\\n- score must be an integer from 1 to 10\\n- reason should be one sentence explaining the score\\n- if approved is false, suggestion must describe what specifically failed and what a better version would do differently\\n- if approved is true, suggestion should be empty`, messages: [{ role: 'user', content: `Review this thought for publication:\\n\\n${thought}` }] } } }];"
+      },
+      "id": "build_review_2",
+      "name": "Build Review Request 2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\"x-api-key\":\"{{ $('Config').item.json.anthropicApiKey }}\",\"anthropic-version\":\"2023-06-01\",\"content-type\":\"application/json\"}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json.requestBody}}",
+        "options": {}
+      },
+      "id": "review_2",
+      "name": "Review Thought 2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        520
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst thought = $('Extract Thought 2').item.json.thought;\nif (thought.length < 90 || thought.length > 220) {\n  return [{ json: { approved: false, score: 0, reason: `Length ${thought.length} chars (must be 90-220).`, suggestion: 'Thought failed length validation. Generate a new thought between 90 and 220 characters.' } }];\n}\nconst content = Array.isArray(response.content) ? response.content : [];\nconst firstTextBlock = content.find((item) => item.type === 'text');\nconst rawText = firstTextBlock?.text || '';\nlet parsed;\ntry { parsed = JSON.parse(rawText.trim()); } catch (error) { parsed = { approved: false, score: 0, reason: 'Review response was not valid JSON.', suggestion: rawText }; }\nreturn [{ json: parsed }];"
+      },
+      "id": "parse_review_2",
+      "name": "Parse Review 2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "merge_2",
+      "name": "Merge Thought + Review 2",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1480,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.approved}}",
+              "value2": true
+            }
+          ],
+          "number": [
+            {
+              "value1": "={{$json.score}}",
+              "operation": "largerEqual",
+              "value2": 8
+            }
+          ]
+        }
+      },
+      "id": "gate_2",
+      "name": "IF Gate 2",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1720,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst now = new Date();\nconst kolkataParts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).formatToParts(now).reduce((acc, part) => { if (part.type !== 'literal') acc[part.type] = part.value; return acc; }, {});\nconst id = `${kolkataParts.year}${kolkataParts.month}${kolkataParts.day}-${kolkataParts.hour}${kolkataParts.minute}${kolkataParts.second}`;\nconst timestamp = `${kolkataParts.year}-${kolkataParts.month}-${kolkataParts.day}T${kolkataParts.hour}:${kolkataParts.minute}:${kolkataParts.second}+05:30`;\nreturn [{ json: { supabaseBody: { id, text_original: item.thought, text_published: null, status: 'pending', timestamp_ist: timestamp, seed: $('Build Gen Request 1').item.json.seed, score: item.score, reason: item.reason, suggestion: item.suggestion || null, round: 1, source: 'n8n', approved_at: null, approved_by_email: null, hidden_at: null } } }];"
+      },
+      "id": "build_pending_1",
+      "name": "Build Pending Row 1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').item.json.supabaseUrl + '/rest/v1/thoughts' }}",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\"apikey\":\"{{ $('Config').item.json.supabaseServiceRoleKey }}\",\"Authorization\":\"Bearer {{ $('Config').item.json.supabaseServiceRoleKey }}\",\"Content-Type\":\"application/json\",\"Prefer\":\"resolution=merge-duplicates,return=representation\"}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json.supabaseBody}}",
+        "options": {}
+      },
+      "id": "insert_pending_1",
+      "name": "Insert Pending Thought 1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Config').item.json.notificationEmail }}",
+        "subject": "Thought queued for approval",
+        "message": "=<div style=\"max-width:680px;font-family:sans-serif;\"><h2 style=\"color:#216869;\">Thought queued for review</h2><p style=\"font-size:16px;line-height:1.6;border-left:3px solid #ccc;padding-left:12px;color:#333;\">{{$json[0].text_original}}</p><p style=\"font-size:14px;color:#666;\">Status: pending approval</p></div>",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Thoughts Writer - n8n"
+        }
+      },
+      "id": "notify_pending_1",
+      "name": "Send Pending Message 1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        760,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst now = new Date();\nconst kolkataParts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).formatToParts(now).reduce((acc, part) => { if (part.type !== 'literal') acc[part.type] = part.value; return acc; }, {});\nconst id = `${kolkataParts.year}${kolkataParts.month}${kolkataParts.day}-${kolkataParts.hour}${kolkataParts.minute}${kolkataParts.second}`;\nconst timestamp = `${kolkataParts.year}-${kolkataParts.month}-${kolkataParts.day}T${kolkataParts.hour}:${kolkataParts.minute}:${kolkataParts.second}+05:30`;\nreturn [{ json: { supabaseBody: { id, text_original: item.thought, text_published: null, status: 'pending', timestamp_ist: timestamp, seed: $('Build Gen Request 2').item.json.seed, score: item.score, reason: item.reason, suggestion: item.suggestion || null, round: 2, source: 'n8n', approved_at: null, approved_by_email: null, hidden_at: null } } }];"
+      },
+      "id": "build_pending_2",
+      "name": "Build Pending Row 2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').item.json.supabaseUrl + '/rest/v1/thoughts' }}",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\"apikey\":\"{{ $('Config').item.json.supabaseServiceRoleKey }}\",\"Authorization\":\"Bearer {{ $('Config').item.json.supabaseServiceRoleKey }}\",\"Content-Type\":\"application/json\",\"Prefer\":\"resolution=merge-duplicates,return=representation\"}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json.supabaseBody}}",
+        "options": {}
+      },
+      "id": "insert_pending_2",
+      "name": "Insert Pending Thought 2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Config').item.json.notificationEmail }}",
+        "subject": "Thought queued for approval",
+        "message": "=<div style=\"max-width:680px;font-family:sans-serif;\"><h2 style=\"color:#216869;\">Thought queued for review</h2><p style=\"font-size:16px;line-height:1.6;border-left:3px solid #ccc;padding-left:12px;color:#333;\">{{$json[0].text_original}}</p><p style=\"font-size:14px;color:#666;\">Status: pending approval</p></div>",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Thoughts Writer - n8n"
+        }
+      },
+      "id": "notify_pending_2",
+      "name": "Send Pending Message 2",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2440,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $('Merge Thought + Review 2').item.json;\nconst now = new Date();\nconst kolkataParts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).formatToParts(now).reduce((acc, part) => { if (part.type !== 'literal') acc[part.type] = part.value; return acc; }, {});\nconst id = `${kolkataParts.year}${kolkataParts.month}${kolkataParts.day}-${kolkataParts.hour}${kolkataParts.minute}${kolkataParts.second}`;\nconst timestamp = `${kolkataParts.year}-${kolkataParts.month}-${kolkataParts.day}T${kolkataParts.hour}:${kolkataParts.minute}:${kolkataParts.second}+05:30`;\nreturn [{ json: { thought: item.thought, score: item.score, reason: item.reason, suggestion: item.suggestion, supabaseBody: { id, text_original: item.thought, text_published: null, status: 'rejected', timestamp_ist: timestamp, seed: $('Build Gen Request 2').item.json.seed, score: item.score, reason: item.reason, suggestion: item.suggestion || null, round: 2, source: 'n8n', approved_at: null, approved_by_email: null, hidden_at: null } } }];"
+      },
+      "id": "build_rejected",
+      "name": "Build Rejected Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').item.json.supabaseUrl + '/rest/v1/thoughts' }}",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\"apikey\":\"{{ $('Config').item.json.supabaseServiceRoleKey }}\",\"Authorization\":\"Bearer {{ $('Config').item.json.supabaseServiceRoleKey }}\",\"Content-Type\":\"application/json\",\"Prefer\":\"resolution=merge-duplicates,return=representation\"}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json.supabaseBody}}",
+        "options": {}
+      },
+      "id": "insert_rejected",
+      "name": "Insert Rejected Thought",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Config').item.json.notificationEmail }}",
+        "subject": "Thought rejected after both attempts",
+        "message": "=<div style=\"max-width:680px;font-family:sans-serif;\"><h2 style=\"color:#a73e39;\">Both attempts rejected</h2><p style=\"font-size:16px;line-height:1.6;border-left:3px solid #ccc;padding-left:12px;color:#333;\">{{$json.thought}}</p><table style=\"font-size:14px;border-collapse:collapse;margin-top:16px;\"><tr><td style=\"padding:4px 12px 4px 0;color:#888;\">Score</td><td><strong>{{$json.score}}/10</strong></td></tr><tr><td style=\"padding:4px 12px 4px 0;color:#888;\">Reason</td><td>{{$json.reason}}</td></tr><tr><td style=\"padding:4px 12px 4px 0;color:#888;\">Suggestion</td><td>{{$json.suggestion}}</td></tr></table></div>",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Thoughts Writer - n8n"
+        }
+      },
+      "id": "notify_rejected",
+      "name": "Send Rejected Message",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2440,
+        760
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Get Recent Thoughts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Recent Thoughts": {
+      "main": [
+        [
+          {
+            "node": "Parse Recent Thoughts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Recent Thoughts": {
+      "main": [
+        [
+          {
+            "node": "Build Gen Request 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gen Request 1": {
+      "main": [
+        [
+          {
+            "node": "Generate Thought 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Thought 1": {
+      "main": [
+        [
+          {
+            "node": "Extract Thought 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Thought 1": {
+      "main": [
+        [
+          {
+            "node": "Build Review Request 1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Thought + Review 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Review Request 1": {
+      "main": [
+        [
+          {
+            "node": "Review Thought 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Review Thought 1": {
+      "main": [
+        [
+          {
+            "node": "Parse Review 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Review 1": {
+      "main": [
+        [
+          {
+            "node": "Merge Thought + Review 1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Thought + Review 1": {
+      "main": [
+        [
+          {
+            "node": "IF Gate 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Gate 1": {
+      "main": [
+        [
+          {
+            "node": "Build Pending Row 1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Gen Request 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Pending Row 1": {
+      "main": [
+        [
+          {
+            "node": "Insert Pending Thought 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Pending Thought 1": {
+      "main": [
+        [
+          {
+            "node": "Send Pending Message 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gen Request 2": {
+      "main": [
+        [
+          {
+            "node": "Generate Thought 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Thought 2": {
+      "main": [
+        [
+          {
+            "node": "Extract Thought 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Thought 2": {
+      "main": [
+        [
+          {
+            "node": "Build Review Request 2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Thought + Review 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Review Request 2": {
+      "main": [
+        [
+          {
+            "node": "Review Thought 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Review Thought 2": {
+      "main": [
+        [
+          {
+            "node": "Parse Review 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Review 2": {
+      "main": [
+        [
+          {
+            "node": "Merge Thought + Review 2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Thought + Review 2": {
+      "main": [
+        [
+          {
+            "node": "IF Gate 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Gate 2": {
+      "main": [
+        [
+          {
+            "node": "Build Pending Row 2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Rejected Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Pending Row 2": {
+      "main": [
+        [
+          {
+            "node": "Insert Pending Thought 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Pending Thought 2": {
+      "main": [
+        [
+          {
+            "node": "Send Pending Message 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Rejected Row": {
+      "main": [
+        [
+          {
+            "node": "Insert Rejected Thought",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Rejected Thought": {
+      "main": [
+        [
+          {
+            "node": "Send Rejected Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

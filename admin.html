@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thoughts Admin</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="stylesheet" href="./admin.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./admin-config.js" defer></script>
+    <script src="./admin.js" defer></script>
+  </head>
+  <body>
+    <div class="admin-shell">
+      <header class="admin-header">
+        <div>
+          <p class="admin-kicker">Private Admin</p>
+          <h1 class="admin-title">Thoughts moderation</h1>
+        </div>
+        <a class="admin-home-link" href="./" target="_blank" rel="noopener noreferrer">
+          Open public archive
+        </a>
+      </header>
+
+      <main class="admin-main">
+        <section class="admin-message" data-setup-message hidden></section>
+        <section class="admin-message" data-runtime-message hidden></section>
+
+        <section class="auth-panel" data-auth-panel>
+          <div class="auth-card">
+            <p class="auth-label">Google sign-in</p>
+            <h2 class="auth-title">Moderate pending thoughts</h2>
+            <p class="auth-copy">
+              Sign in with your approved Google Workspace account to review, approve,
+              reject, or hide thoughts before they are exported live.
+            </p>
+            <button class="primary-button" type="button" data-login-button>
+              Continue with Google
+            </button>
+          </div>
+        </section>
+
+        <section class="admin-app" data-admin-app hidden>
+          <div class="admin-toolbar">
+            <div class="admin-user">
+              <span class="admin-user-label">Signed in as</span>
+              <strong data-user-email></strong>
+            </div>
+
+            <div class="admin-actions">
+              <label class="filter-field" for="status-filter">
+                <span>Status</span>
+                <select id="status-filter" data-status-filter>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="hidden">Hidden</option>
+                  <option value="all">All</option>
+                </select>
+              </label>
+              <button class="secondary-button" type="button" data-refresh-button>Refresh</button>
+              <button class="secondary-button" type="button" data-logout-button>Sign out</button>
+            </div>
+          </div>
+
+          <section class="admin-message admin-sync-note" data-sync-note>
+            Approved thoughts publish automatically on the next hourly sync.
+          </section>
+
+          <section class="admin-message" data-list-message hidden></section>
+
+          <section class="thought-admin-list" data-thoughts-list></section>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

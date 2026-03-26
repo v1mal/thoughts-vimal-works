@@ -1,0 +1,267 @@
+{
+  "name": "Thoughts - Supabase Export",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1160,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/15 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1160,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "thoughts-export",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1160,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { supabaseUrl: 'REPLACE_WITH_SUPABASE_URL', supabaseServiceRoleKey: 'REPLACE_WITH_SUPABASE_SERVICE_ROLE_KEY', githubToken: 'REPLACE_WITH_GITHUB_FINE_GRAINED_PAT', githubOwner: 'v1mal', githubRepo: 'thoughts-vimal-works', githubBranch: 'main', githubPath: 'data/thoughts.json' } }];"
+      },
+      "id": "config",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -900,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Config').item.json.supabaseUrl + '/rest/v1/approved_thoughts_export?select=id,text,timestamp&order=timestamp.desc' }}",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\"apikey\":\"{{ $('Config').item.json.supabaseServiceRoleKey }}\",\"Authorization\":\"Bearer {{ $('Config').item.json.supabaseServiceRoleKey }}\"}",
+        "options": {}
+      },
+      "id": "fetch_approved",
+      "name": "Fetch Approved Thoughts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -640,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = Array.isArray($input.first().json) ? $input.first().json : $input.all().map((item) => item.json);\nconst payload = { thoughts: rows.map((row) => ({ id: row.id, text: row.text, timestamp: row.timestamp })) };\nreturn [{ json: { thoughtsCount: payload.thoughts.length, exportContent: Buffer.from(JSON.stringify(payload, null, 2) + '\\n', 'utf8').toString('base64') } }];"
+      },
+      "id": "build_export",
+      "name": "Build Export JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -380,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/{{ $('Config').item.json.githubOwner }}/{{ $('Config').item.json.githubRepo }}/contents/{{ $('Config').item.json.githubPath }}?ref={{ $('Config').item.json.githubBranch }}",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\"Authorization\":\"Bearer {{ $('Config').item.json.githubToken }}\",\"Accept\":\"application/vnd.github+json\",\"X-GitHub-Api-Version\":\"2022-11-28\"}",
+        "options": {}
+      },
+      "id": "get_file",
+      "name": "Get thoughts.json",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -120,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "merge",
+      "name": "Merge Export + File",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        140,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst commitBody = { message: `Export approved thoughts (${item.thoughtsCount})`, content: item.exportContent, branch: $('Config').item.json.githubBranch };\nif (item.sha) commitBody.sha = item.sha;\nreturn [{ json: { thoughtsCount: item.thoughtsCount, commitBody } }];"
+      },
+      "id": "build_commit",
+      "name": "Build Commit Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.github.com/repos/{{ $('Config').item.json.githubOwner }}/{{ $('Config').item.json.githubRepo }}/contents/{{ $('Config').item.json.githubPath }}",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\"Authorization\":\"Bearer {{ $('Config').item.json.githubToken }}\",\"Accept\":\"application/vnd.github+json\",\"X-GitHub-Api-Version\":\"2022-11-28\"}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json.commitBody}}",
+        "options": {}
+      },
+      "id": "commit",
+      "name": "Commit thoughts.json",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        180
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Fetch Approved Thoughts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Approved Thoughts": {
+      "main": [
+        [
+          {
+            "node": "Build Export JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Export JSON": {
+      "main": [
+        [
+          {
+            "node": "Get thoughts.json",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Export + File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get thoughts.json": {
+      "main": [
+        [
+          {
+            "node": "Merge Export + File",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Export + File": {
+      "main": [
+        [
+          {
+            "node": "Build Commit Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Commit Body": {
+      "main": [
+        [
+          {
+            "node": "Commit thoughts.json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
