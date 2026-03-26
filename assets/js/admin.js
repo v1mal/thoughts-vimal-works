@@ -1,12 +1,12 @@
 const adminConfig = window.THOUGHTS_ADMIN_CONFIG || {};
 const setupMessage = document.querySelector("[data-setup-message]");
 const runtimeMessage = document.querySelector("[data-runtime-message]");
+const feedMessage = document.querySelector("[data-feed-message]");
 const authPanel = document.querySelector("[data-auth-panel]");
 const adminApp = document.querySelector("[data-admin-app]");
 const loginButton = document.querySelector("[data-login-button]");
 const logoutButton = document.querySelector("[data-logout-button]");
-const refreshButton = document.querySelector("[data-refresh-button]");
-const statusFilter = document.querySelector("[data-status-filter]");
+const statusFilterTabs = Array.from(document.querySelectorAll("[data-status-filter-tab]"));
 const thoughtsList = document.querySelector("[data-thoughts-list]");
 const userEmail = document.querySelector("[data-user-email]");
 const listMessage = document.querySelector("[data-list-message]");
@@ -14,14 +14,33 @@ const listMessage = document.querySelector("[data-list-message]");
 let supabaseClient = null;
 let currentSession = null;
 let currentRows = [];
+let currentFilter = "pending";
 
-function showMessage(element, message) {
+function getMessageStatusLabel(status) {
+  if (!status) {
+    return "Notice";
+  }
+
+  return getStatusLabel(status);
+}
+
+function showMessage(element, message, options = {}) {
   if (!element) {
     return;
   }
 
+  const status = options.status || "hidden";
+  const label = options.label || getMessageStatusLabel(status);
+
   element.hidden = false;
-  element.textContent = message;
+  element.dataset.status = status;
+  element.innerHTML = `
+    <div class="ui-alert-main">
+      <p class="ui-alert-label">${label}</p>
+      <p class="ui-alert-text">${message}</p>
+    </div>
+    <button class="ui-alert-close" type="button" aria-label="Dismiss message" data-alert-close>&times;</button>
+  `;
 }
 
 function clearMessage(element) {
@@ -30,7 +49,8 @@ function clearMessage(element) {
   }
 
   element.hidden = true;
-  element.textContent = "";
+  delete element.dataset.status;
+  element.innerHTML = "";
 }
 
 function isConfigured() {
@@ -67,10 +87,104 @@ function getThoughtText(row) {
 
 function renderMeta(label, value) {
   return `
-    <div class="thought-admin-meta-item">
-      <span class="thought-admin-meta-label">${label}</span>
-      <span class="thought-admin-meta-value">${value || "—"}</span>
+    <div class="ui-meta-item">
+      <span class="ui-meta-label">${label}</span>
+      <span class="ui-meta-value">${value || "—"}</span>
     </div>
+  `;
+}
+
+function getStatusLabel(status) {
+  return status;
+}
+
+function getActionSuccessMessage(id, status) {
+  if (status === "approved") {
+    return `Thought ID: ${id} is approved.`;
+  }
+
+  if (status === "rejected") {
+    return `Thought ID: ${id} is rejected.`;
+  }
+
+  if (status === "hidden") {
+    return `Thought ID: ${id} is hidden.`;
+  }
+
+  if (status === "pending") {
+    return `Thought ID: ${id} is restored to pending.`;
+  }
+
+  return `Thought ID: ${id} is updated.`;
+}
+
+function getEmptyFilterMessage(filter) {
+  if (filter === "pending") {
+    return "No new thoughts are pending review.";
+  }
+
+  if (filter === "approved") {
+    return "No approved thoughts are available right now.";
+  }
+
+  if (filter === "rejected") {
+    return "No rejected thoughts are available right now.";
+  }
+
+  if (filter === "hidden") {
+    return "No hidden thoughts are available right now.";
+  }
+
+  return "No thoughts are available right now.";
+}
+
+function setCurrentFilter(value) {
+  currentFilter = value || "pending";
+
+  statusFilterTabs.forEach((tab) => {
+    const isActive = tab.dataset.value === currentFilter;
+    tab.setAttribute("aria-selected", String(isActive));
+  });
+}
+
+function getActionClass(tone) {
+  if (tone === "approve") {
+    return "ui-button ui-button--primary";
+  }
+
+  if (tone === "reject") {
+    return "ui-button ui-button--danger";
+  }
+
+  if (tone === "hide") {
+    return "ui-button ui-button--outline";
+  }
+
+  return "ui-button ui-button--muted";
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function renderExpandableText(value) {
+  const text = (value || "—").trim() || "—";
+
+  if (text === "—" || text.length <= 158) {
+    return `<span class="ui-section-copy-text">${escapeHtml(text)}</span>`;
+  }
+
+  const preview = `${text.slice(0, 158)}…`;
+
+  return `
+    <span class="ui-section-copy-text" data-collapsed-text>${escapeHtml(preview)}</span>
+    <span class="ui-section-copy-text" data-expanded-text hidden>${escapeHtml(text)}</span>
+    <button class="ui-inline-link" type="button" data-expand-copy aria-expanded="false">Read more</button>
   `;
 }
 
@@ -79,25 +193,25 @@ function renderActions(row) {
 
   if (row.status !== "approved") {
     actions.push(
-      `<button class="status-action" type="button" data-action="approve" data-id="${row.id}" data-tone="approve">Approve</button>`,
+      `<button class="${getActionClass("approve")}" type="button" data-action="approve" data-id="${row.id}" data-tone="approve">Approve</button>`,
     );
   }
 
   if (row.status !== "rejected") {
     actions.push(
-      `<button class="status-action" type="button" data-action="reject" data-id="${row.id}" data-tone="reject">Reject</button>`,
+      `<button class="${getActionClass("reject")}" type="button" data-action="reject" data-id="${row.id}" data-tone="reject">Reject</button>`,
     );
   }
 
   if (row.status !== "hidden") {
     actions.push(
-      `<button class="status-action" type="button" data-action="hide" data-id="${row.id}" data-tone="hide">Hide</button>`,
+      `<button class="${getActionClass("hide")}" type="button" data-action="hide" data-id="${row.id}" data-tone="hide">Hide</button>`,
     );
   }
 
   if (row.status !== "pending") {
     actions.push(
-      `<button class="status-action" type="button" data-action="restore" data-id="${row.id}">Restore to pending</button>`,
+      `<button class="${getActionClass("default")} ui-action-restore" type="button" data-action="restore" data-id="${row.id}">Restore to pending</button>`,
     );
   }
 
@@ -107,7 +221,10 @@ function renderActions(row) {
 function renderRows(rows) {
   if (!rows.length) {
     thoughtsList.replaceChildren();
-    showMessage(listMessage, "No thoughts found for this filter.");
+    showMessage(listMessage, getEmptyFilterMessage(currentFilter), {
+      status: currentFilter === "all" ? "hidden" : currentFilter,
+      label: currentFilter === "all" ? "Notice" : getStatusLabel(currentFilter),
+    });
     return;
   }
 
@@ -115,29 +232,53 @@ function renderRows(rows) {
 
   thoughtsList.innerHTML = rows
     .map(
-      (row) => `
-        <article class="thought-admin-card">
-          <div class="thought-admin-top">
-            <span class="thought-admin-status" data-status="${row.status}">${row.status}</span>
-            <span class="thought-admin-meta-label">${row.id}</span>
+      (row) => {
+        const sections = [
+          `
+            <div class="ui-section">
+              <span class="ui-label">Reason</span>
+              <div class="ui-section-copy">${renderExpandableText(row.reason)}</div>
+            </div>
+          `,
+        ];
+
+        if (row.status !== "approved") {
+          sections.push(`
+            <div class="ui-section">
+              <span class="ui-label">Suggestion</span>
+              <div class="ui-section-copy">${renderExpandableText(row.suggestion)}</div>
+            </div>
+          `);
+        }
+
+        return `
+        <article class="ui-thought-card" data-status="${row.status}">
+          <div class="ui-thought-top">
+            <div class="ui-thought-top-left">
+              <span class="ui-badge" data-status="${row.status}">${getStatusLabel(row.status)}</span>
+              <span class="ui-score-pill">${row.score != null ? `${row.score}/10` : "—"}</span>
+            </div>
+            <span class="ui-thought-id">ID: ${row.id}</span>
           </div>
 
-          <p class="thought-admin-text">${getThoughtText(row)}</p>
+          <p class="ui-thought-text">${getThoughtText(row)}</p>
 
-          <div class="thought-admin-meta">
+          <div class="ui-meta-row">
             ${renderMeta("Timestamp", formatDate(row.timestamp_ist))}
-            ${renderMeta("Score", row.score != null ? `${row.score}/10` : "")}
-            ${renderMeta("Round", row.round != null ? String(row.round) : "")}
+            ${row.status !== "rejected" ? renderMeta("Round", row.round != null ? String(row.round) : "") : ""}
             ${renderMeta("Seed", row.seed)}
-            ${renderMeta("Reason", row.reason)}
-            ${renderMeta("Suggestion", row.suggestion)}
           </div>
 
-          <div class="thought-admin-buttons">
+          <div class="ui-sections">
+            ${sections.join("")}
+          </div>
+
+          <div class="ui-actions">
             ${renderActions(row)}
           </div>
         </article>
-      `,
+      `;
+      },
     )
     .join("");
 }
@@ -147,7 +288,7 @@ async function fetchThoughts() {
     return;
   }
 
-  const filter = statusFilter?.value || "pending";
+  const filter = currentFilter || "pending";
   let query = supabaseClient
     .from("thoughts")
     .select(
@@ -209,7 +350,9 @@ async function updateThoughtStatus(id, action) {
   }
 
   await fetchThoughts();
-  showMessage(runtimeMessage, `Updated ${id} to ${payload.status}.`);
+  showMessage(feedMessage, getActionSuccessMessage(id, payload.status), {
+    status: payload.status,
+  });
 }
 
 async function handleSession(session) {
@@ -223,12 +366,17 @@ async function handleSession(session) {
     adminApp.hidden = true;
     userEmail.textContent = "";
     thoughtsList.replaceChildren();
+    clearMessage(feedMessage);
+    clearMessage(listMessage);
     return;
   }
 
   if (email !== adminConfig.allowedEmail) {
     await supabaseClient.auth.signOut();
-    showMessage(runtimeMessage, "This Google account is not allowed to access the admin.");
+    showMessage(runtimeMessage, "This Google account is not allowed to access the admin.", {
+      status: "rejected",
+      label: "Error",
+    });
     authPanel.hidden = false;
     adminApp.hidden = true;
     return;
@@ -289,7 +437,10 @@ async function boot() {
       await signIn();
     } catch (error) {
       console.error("Failed to start Google sign-in", error);
-      showMessage(runtimeMessage, "Unable to start Google sign-in right now.");
+      showMessage(runtimeMessage, "Unable to start Google sign-in right now.", {
+        status: "rejected",
+        label: "Error",
+      });
     } finally {
       loginButton.disabled = false;
     }
@@ -300,29 +451,68 @@ async function boot() {
     await handleSession(null);
   });
 
-  refreshButton?.addEventListener("click", async () => {
-    refreshButton.disabled = true;
+  statusFilterTabs.forEach((tab) => {
+    tab.addEventListener("click", async () => {
+      const nextFilter = tab.dataset.value || "pending";
 
-    try {
-      await fetchThoughts();
-    } catch (error) {
-      console.error("Failed to refresh thoughts", error);
-      showMessage(runtimeMessage, "Unable to refresh thoughts right now.");
-    } finally {
-      refreshButton.disabled = false;
+      if (nextFilter === currentFilter) {
+        return;
+      }
+
+      setCurrentFilter(nextFilter);
+
+      try {
+        await fetchThoughts();
+      } catch (error) {
+        console.error("Failed to load filtered thoughts", error);
+        showMessage(feedMessage, "Unable to load this filter right now.", {
+          status: "rejected",
+          label: "Error",
+        });
+      }
+    });
+  });
+
+  feedMessage?.addEventListener("click", (event) => {
+    const closeButton = event.target.closest("[data-alert-close]");
+
+    if (closeButton) {
+      clearMessage(feedMessage);
     }
   });
 
-  statusFilter?.addEventListener("change", async () => {
-    try {
-      await fetchThoughts();
-    } catch (error) {
-      console.error("Failed to load filtered thoughts", error);
-      showMessage(runtimeMessage, "Unable to load this filter right now.");
+  listMessage?.addEventListener("click", (event) => {
+    const closeButton = event.target.closest("[data-alert-close]");
+
+    if (closeButton) {
+      clearMessage(listMessage);
     }
   });
 
   thoughtsList?.addEventListener("click", async (event) => {
+    const expandButton = event.target.closest("[data-expand-copy]");
+
+    if (expandButton instanceof HTMLButtonElement) {
+      const sectionCopy = expandButton.closest(".ui-section-copy");
+
+      if (!sectionCopy) {
+        return;
+      }
+
+      const collapsedText = sectionCopy.querySelector("[data-collapsed-text]");
+      const expandedText = sectionCopy.querySelector("[data-expanded-text]");
+      const isExpanded = expandButton.getAttribute("aria-expanded") === "true";
+
+      if (collapsedText && expandedText) {
+        collapsedText.hidden = !isExpanded;
+        expandedText.hidden = isExpanded;
+        expandButton.setAttribute("aria-expanded", String(!isExpanded));
+        expandButton.textContent = isExpanded ? "Read more" : "Show less";
+      }
+
+      return;
+    }
+
     const button = event.target.closest("[data-action]");
 
     if (!(button instanceof HTMLButtonElement)) {
@@ -341,7 +531,10 @@ async function boot() {
       await updateThoughtStatus(id, action);
     } catch (error) {
       console.error(`Failed to ${action} ${id}`, error);
-      showMessage(runtimeMessage, `Unable to ${action} this thought right now.`);
+      showMessage(feedMessage, `Unable to ${action} this thought right now.`, {
+        status: "rejected",
+        label: "Error",
+      });
     } finally {
       button.disabled = false;
     }
@@ -351,6 +544,7 @@ async function boot() {
     data: { session },
   } = await supabaseClient.auth.getSession();
 
+  setCurrentFilter(currentFilter);
   await handleSession(session);
 
   supabaseClient.auth.onAuthStateChange(async (_event, session) => {
@@ -360,5 +554,8 @@ async function boot() {
 
 boot().catch((error) => {
   console.error("Failed to boot admin page", error);
-  showMessage(runtimeMessage, "Unable to load the admin right now.");
+  showMessage(runtimeMessage, "Unable to load the admin right now.", {
+    status: "rejected",
+    label: "Error",
+  });
 });

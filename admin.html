@@ -6,70 +6,155 @@
     <title>Thoughts Admin</title>
     <meta name="robots" content="noindex, nofollow" />
     <link rel="stylesheet" href="./assets/css/admin.css" />
+    <script>
+      window.tailwind = window.tailwind || {};
+      window.tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              page: "#fafaf9",
+              ink: "#18181b",
+              panel: "#ffffff",
+              muted: "#f5f5f4",
+              line: "#e7e5e4",
+              pending: "#fef3c7",
+              pendingInk: "#92400e",
+              approved: "#dcfce7",
+              approvedInk: "#166534",
+              rejected: "#fee2e2",
+              rejectedInk: "#991b1b",
+              hidden: "#f4f4f5",
+              hiddenInk: "#52525b"
+            },
+            fontFamily: {
+              sans: ['"Plus Jakarta Sans"', '"Helvetica Neue"', "Arial", "sans-serif"]
+            },
+            boxShadow: {
+              panel: "0 1px 2px rgba(24,24,27,0.03), 0 8px 24px rgba(24,24,27,0.04)"
+            }
+          }
+        }
+      };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./assets/js/admin-config.js" defer></script>
     <script src="./assets/js/admin.js" defer></script>
   </head>
   <body>
     <div class="admin-shell">
-      <header class="admin-header">
-        <div>
-          <p class="admin-kicker">Private Admin</p>
-          <h1 class="admin-title">Thoughts moderation</h1>
-        </div>
-        <a class="admin-home-link" href="./" target="_blank" rel="noopener noreferrer">
-          Open public archive
-        </a>
-      </header>
-
       <main class="admin-main">
-        <section class="admin-message" data-setup-message hidden></section>
-        <section class="admin-message" data-runtime-message hidden></section>
+        <section class="ui-panel ui-message" data-setup-message hidden></section>
 
-        <section class="auth-panel" data-auth-panel>
-          <div class="auth-card">
-            <p class="auth-label">Google sign-in</p>
-            <h2 class="auth-title">Moderate pending thoughts</h2>
-            <p class="auth-copy">
-              Sign in with your approved Google Workspace account to review, approve,
-              reject, or hide thoughts before they are exported live.
-            </p>
-            <button class="primary-button" type="button" data-login-button>
-              Continue with Google
-            </button>
+        <section class="ui-panel ui-message" data-runtime-message hidden></section>
+
+        <section class="auth-layout" data-auth-panel hidden>
+          <div class="auth-shell">
+            <div class="auth-brand-panel">
+              <div class="auth-brand-copy">
+                <p class="auth-brand-mark">PRIVATE ADMIN</p>
+                <h2 class="auth-brand-title">Thoughts moderation</h2>
+                <p class="auth-brand-body">
+                  A quieter place to review what deserves to be published and
+                  what should stay out of the archive.
+                </p>
+              </div>
+            </div>
+
+            <div class="auth-form-panel">
+              <div class="auth-card-inner">
+                <div class="ui-stack-auth">
+                  <p class="ui-kicker">GOOGLE SIGN-IN</p>
+                  <h2 class="auth-title">Moderate pending thoughts</h2>
+                  <p class="auth-copy">
+                    Sign in with your approved Google account to enter the moderation
+                    workspace.
+                  </p>
+                </div>
+
+                <button
+                  class="ui-button ui-button--auth"
+                  type="button"
+                  data-login-button
+                >
+                  <span class="ui-button__icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                      <path d="M21.8 12.23c0-.79-.07-1.55-.2-2.27H12v4.3h5.49a4.7 4.7 0 0 1-2.04 3.08v2.56h3.3c1.93-1.78 3.05-4.4 3.05-7.67Z" fill="#4285F4"></path>
+                      <path d="M12 22c2.7 0 4.96-.9 6.62-2.43l-3.3-2.56c-.91.61-2.08.98-3.32.98-2.55 0-4.71-1.72-5.48-4.03H3.1v2.63A10 10 0 0 0 12 22Z" fill="#34A853"></path>
+                      <path d="M6.52 13.96A5.98 5.98 0 0 1 6.2 12c0-.68.11-1.34.32-1.96V7.4H3.1A9.98 9.98 0 0 0 2 12c0 1.61.38 3.13 1.1 4.6l3.42-2.64Z" fill="#FBBC05"></path>
+                      <path d="M12 6.01c1.47 0 2.8.5 3.84 1.49l2.88-2.88C16.95 2.98 14.7 2 12 2A10 10 0 0 0 3.1 7.4l3.42 2.64C7.29 7.73 9.45 6.01 12 6.01Z" fill="#EA4335"></path>
+                    </svg>
+                  </span>
+                  <span class="ui-button__label">Continue with Google</span>
+                </button>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section class="admin-app" data-admin-app hidden>
-          <div class="admin-toolbar">
-            <div class="admin-user">
-              <span class="admin-user-label">Signed in as</span>
-              <strong data-user-email></strong>
+        <section class="workspace" data-admin-app hidden>
+          <aside class="workspace-sidebar ui-card">
+            <div class="workspace-sidebar-block">
+              <p class="ui-kicker">SIGNED IN AS</p>
+              <p class="ui-user-email" data-user-email></p>
+              <button class="ui-button ui-button--outline" type="button" data-logout-button>
+                Sign out
+              </button>
             </div>
 
-            <div class="admin-actions">
-              <label class="filter-field" for="status-filter">
-                <span>Status</span>
-                <select id="status-filter" data-status-filter>
-                  <option value="pending">Pending</option>
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option>
-                  <option value="hidden">Hidden</option>
-                  <option value="all">All</option>
-                </select>
-              </label>
-              <button class="secondary-button" type="button" data-refresh-button>Refresh</button>
-              <button class="secondary-button" type="button" data-logout-button>Sign out</button>
+            <div class="workspace-sidebar-divider"></div>
+
+            <div class="workspace-sidebar-block workspace-sidebar-controls">
+              <div class="ui-field">
+                <span class="ui-label">STATUS</span>
+                <div class="ui-tablist" role="tablist" aria-label="Status filter">
+                  <button class="ui-tab" type="button" role="tab" data-status-filter-tab data-value="pending" aria-selected="true">
+                    Pending
+                  </button>
+                  <button class="ui-tab" type="button" role="tab" data-status-filter-tab data-value="approved" aria-selected="false">
+                    Approved
+                  </button>
+                  <button class="ui-tab" type="button" role="tab" data-status-filter-tab data-value="rejected" aria-selected="false">
+                    Rejected
+                  </button>
+                  <button class="ui-tab" type="button" role="tab" data-status-filter-tab data-value="hidden" aria-selected="false">
+                    Hidden
+                  </button>
+                  <button class="ui-tab" type="button" role="tab" data-status-filter-tab data-value="all" aria-selected="false">
+                    All
+                  </button>
+                </div>
+              </div>
             </div>
+
+            <div class="workspace-sidebar-divider"></div>
+
+            <section class="ui-note workspace-sidebar-note" data-sync-note>
+              Approved thoughts publish automatically on the next hourly sync.
+            </section>
+          </aside>
+
+          <div class="workspace-main">
+            <section class="workspace-banner">
+              <div class="workspace-banner-panel">
+                <div class="workspace-banner-copy">
+                  <p class="auth-brand-mark">PRIVATE ADMIN</p>
+                  <h2 class="workspace-banner-title">Thoughts moderation</h2>
+                  <p class="workspace-banner-body">
+                    Review the queue, make clean editorial decisions, and keep the public archive intentional.
+                  </p>
+                  <a class="workspace-banner-link" href="./index.html">Go to public archive</a>
+                </div>
+              </div>
+            </section>
+
+            <div class="ui-alert-feed">
+              <section class="ui-panel ui-alert" data-feed-message hidden></section>
+              <section class="ui-panel ui-alert" data-list-message hidden></section>
+            </div>
+
+            <section class="ui-thought-list" data-thoughts-list></section>
           </div>
-
-          <section class="admin-message admin-sync-note" data-sync-note>
-            Approved thoughts publish automatically on the next hourly sync.
-          </section>
-
-          <section class="admin-message" data-list-message hidden></section>
-
-          <section class="thought-admin-list" data-thoughts-list></section>
         </section>
       </main>
     </div>
