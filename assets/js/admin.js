@@ -251,6 +251,9 @@ function renderRows(rows) {
           `);
         }
 
+        const sectionsClass =
+          sections.length === 1 ? "ui-sections ui-sections--single" : "ui-sections";
+
         return `
         <article class="ui-thought-card" data-status="${row.status}">
           <div class="ui-thought-top">
@@ -269,7 +272,7 @@ function renderRows(rows) {
             ${renderMeta("Seed", row.seed)}
           </div>
 
-          <div class="ui-sections">
+          <div class="${sectionsClass}">
             ${sections.join("")}
           </div>
 
