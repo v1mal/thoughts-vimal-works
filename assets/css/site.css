@@ -122,6 +122,11 @@ body {
   outline: none;
 }
 
+.archive-pagination-button:disabled {
+  opacity: 0.68;
+  cursor: wait;
+}
+
 .site-footer {
   display: flex;
   align-items: center;

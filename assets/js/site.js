@@ -55,8 +55,11 @@ let allThoughts = [];
 let renderedThoughts = [];
 let htmlToImageLoader = null;
 let visibleThoughtCount = 30;
+let renderSequence = 0;
 
 const THOUGHTS_PER_PAGE = 30;
+const INITIAL_RENDER_BATCH_SIZE = 12;
+const APPEND_RENDER_BATCH_SIZE = 18;
 
 function setStatus(message) {
   statusPanel.hidden = false;
@@ -340,47 +343,95 @@ function renderThoughts(thoughts) {
   const fragment = document.createDocumentFragment();
 
   thoughts.forEach((thought) => {
-    const card = template.content.firstElementChild.cloneNode(true);
-    const text = card.querySelector(".thought-text");
-    const date = card.querySelector(".thought-date");
-    const button = card.querySelector(".card-download");
-    const shareButton = card.querySelector(".card-share");
-    const shareMenu = card.querySelector(".share-menu");
-    const color = colors[hashString(thought.id) % colors.length];
-    const style = cardStyles[color] ?? {
-      background: color,
-      foreground: "#1f1d1a",
-      date: "#4f5a53",
-    };
-
-    card.id = `thought-${thought.id}`;
-    card.dataset.thoughtId = thought.id;
-    card.style.setProperty("--card-bg", style.background);
-    card.style.setProperty("--card-fg", style.foreground);
-    card.style.setProperty("--card-date-fg", style.date);
-
-    text.textContent = thought.text;
-    date.textContent = formatDate(thought.timestamp);
-    date.dateTime = thought.timestamp;
-    button.dataset.filename = `thought-${thought.id}`;
-
-    if (shareButton instanceof HTMLButtonElement) {
-      shareButton.dataset.thoughtId = thought.id;
-      shareButton.setAttribute("aria-controls", `share-menu-${thought.id}`);
-    }
-
-    if (shareMenu instanceof HTMLElement) {
-      shareMenu.id = `share-menu-${thought.id}`;
-    }
-
-    fragment.appendChild(card);
+    fragment.appendChild(createThoughtCard(thought));
   });
 
   grid.replaceChildren(fragment);
   syncThoughtModalWithHash();
 }
 
-function syncPagination() {
+function createThoughtCard(thought) {
+  const card = template.content.firstElementChild.cloneNode(true);
+  const text = card.querySelector(".thought-text");
+  const date = card.querySelector(".thought-date");
+  const button = card.querySelector(".card-download");
+  const shareButton = card.querySelector(".card-share");
+  const shareMenu = card.querySelector(".share-menu");
+  const color = colors[hashString(thought.id) % colors.length];
+  const style = cardStyles[color] ?? {
+    background: color,
+    foreground: "#1f1d1a",
+    date: "#4f5a53",
+  };
+
+  card.id = `thought-${thought.id}`;
+  card.dataset.thoughtId = thought.id;
+  card.style.setProperty("--card-bg", style.background);
+  card.style.setProperty("--card-fg", style.foreground);
+  card.style.setProperty("--card-date-fg", style.date);
+
+  text.textContent = thought.text;
+  date.textContent = formatDate(thought.timestamp);
+  date.dateTime = thought.timestamp;
+  button.dataset.filename = `thought-${thought.id}`;
+
+  if (shareButton instanceof HTMLButtonElement) {
+    shareButton.dataset.thoughtId = thought.id;
+    shareButton.setAttribute("aria-controls", `share-menu-${thought.id}`);
+  }
+
+  if (shareMenu instanceof HTMLElement) {
+    shareMenu.id = `share-menu-${thought.id}`;
+  }
+
+  return card;
+}
+
+function nextFrame() {
+  return new Promise((resolve) => {
+    window.requestAnimationFrame(() => resolve());
+  });
+}
+
+async function appendThoughts(thoughts, options = {}) {
+  const { batchSize = APPEND_RENDER_BATCH_SIZE, replace = false } = options;
+  const sequenceId = ++renderSequence;
+
+  if (replace) {
+    grid.replaceChildren();
+  }
+
+  for (let index = 0; index < thoughts.length; index += batchSize) {
+    if (sequenceId !== renderSequence) {
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    const batch = thoughts.slice(index, index + batchSize);
+
+    batch.forEach((thought) => {
+      fragment.appendChild(createThoughtCard(thought));
+    });
+
+    grid.appendChild(fragment);
+    await nextFrame();
+  }
+
+  if (sequenceId === renderSequence) {
+    syncThoughtModalWithHash();
+  }
+}
+
+function setLoadMoreState(isLoading) {
+  if (!loadMoreButton) {
+    return;
+  }
+
+  loadMoreButton.disabled = isLoading;
+  loadMoreButton.textContent = isLoading ? "Loading more…" : loadMoreButton.textContent;
+}
+
+function updatePaginationLabel() {
   if (!pagination || !loadMoreButton) {
     return;
   }
@@ -388,16 +439,50 @@ function syncPagination() {
   const hasMore = allThoughts.length > renderedThoughts.length;
   pagination.hidden = !hasMore;
 
-  if (hasMore) {
-    const remaining = allThoughts.length - renderedThoughts.length;
-    loadMoreButton.textContent = remaining > THOUGHTS_PER_PAGE ? "Load more" : `Load final ${remaining}`;
+  if (!hasMore) {
+    return;
+  }
+
+  const remaining = allThoughts.length - renderedThoughts.length;
+  loadMoreButton.textContent = remaining > THOUGHTS_PER_PAGE ? "Load more" : `Load final ${remaining}`;
+}
+
+async function renderVisibleThoughts() {
+  const visibleThoughts = allThoughts.slice(0, visibleThoughtCount);
+  renderedThoughts = visibleThoughts;
+  await appendThoughts(visibleThoughts, {
+    replace: true,
+    batchSize: INITIAL_RENDER_BATCH_SIZE,
+  });
+  updatePaginationLabel();
+}
+
+async function appendNextThoughts() {
+  const nextVisibleCount = Math.min(allThoughts.length, visibleThoughtCount + THOUGHTS_PER_PAGE);
+  const nextBatch = allThoughts.slice(visibleThoughtCount, nextVisibleCount);
+
+  if (!nextBatch.length) {
+    updatePaginationLabel();
+    return;
+  }
+
+  setLoadMoreState(true);
+  visibleThoughtCount = nextVisibleCount;
+  renderedThoughts = allThoughts.slice(0, visibleThoughtCount);
+
+  try {
+    await appendThoughts(nextBatch, {
+      replace: false,
+      batchSize: APPEND_RENDER_BATCH_SIZE,
+    });
+  } finally {
+    setLoadMoreState(false);
+    updatePaginationLabel();
   }
 }
 
-function renderVisibleThoughts() {
-  const visibleThoughts = allThoughts.slice(0, visibleThoughtCount);
-  renderThoughts(visibleThoughts);
-  syncPagination();
+function syncPagination() {
+  updatePaginationLabel();
 }
 
 function isValidThought(thought) {
@@ -559,7 +644,7 @@ async function loadThoughts() {
     allThoughts = thoughts;
     visibleThoughtCount = THOUGHTS_PER_PAGE;
     clearStatus();
-    renderVisibleThoughts();
+    await renderVisibleThoughts();
   } catch (error) {
     console.error("Unable to load thoughts", error);
     allThoughts = [];
@@ -574,8 +659,12 @@ async function loadThoughts() {
 }
 
 loadMoreButton?.addEventListener("click", () => {
-  visibleThoughtCount += THOUGHTS_PER_PAGE;
-  renderVisibleThoughts();
+  appendNextThoughts().catch((error) => {
+    console.error("Unable to load more thoughts", error);
+    showToast("Unable to load more thoughts right now.");
+    setLoadMoreState(false);
+    updatePaginationLabel();
+  });
 });
 
 loadThoughts();
