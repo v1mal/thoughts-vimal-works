@@ -160,7 +160,7 @@ async function fetchPublicSummary() {
 
     if (!thoughts.length) {
       publicSummary.hidden = true;
-      publicSummary.textContent = "";
+      publicSummary.innerHTML = "";
       return;
     }
 
@@ -169,16 +169,20 @@ async function fetchPublicSummary() {
 
     if (!relative) {
       publicSummary.hidden = false;
-      publicSummary.textContent = `${thoughts.length} items are live on the public site.`;
+      publicSummary.innerHTML = `<span class="workspace-banner-summary-strong">${thoughts.length} items live on public site</span>`;
       return;
     }
 
     publicSummary.hidden = false;
-    publicSummary.textContent = `Latest published thought ${relative} — ${thoughts.length} items live on public site`;
+    publicSummary.innerHTML = `
+      <span class="workspace-banner-summary-prefix">Latest published thought</span>
+      <span class="workspace-banner-summary-strong">${relative} — ${thoughts.length} items</span>
+      <span class="workspace-banner-summary-suffix">live on public site</span>
+    `;
   } catch (error) {
     console.error("Failed to load public summary", error);
     publicSummary.hidden = true;
-    publicSummary.textContent = "";
+    publicSummary.innerHTML = "";
   }
 }
 
@@ -423,6 +427,17 @@ function renderActions(row) {
   return actions.join("");
 }
 
+function renderCompactMeta(row) {
+  const parts = [
+    formatDate(row.timestamp_ist),
+    row.seed ? `Seed: ${escapeHtml(row.seed)}` : "",
+    row.status !== "rejected" && row.round != null ? `Round: ${escapeHtml(String(row.round))}` : "",
+    `ID: ${escapeHtml(row.id)}`,
+  ].filter(Boolean);
+
+  return parts.map((part) => `<span class="ui-compact-meta-part">${part}</span>`).join("");
+}
+
 function renderRows(rows) {
   if (!rows.length) {
     thoughtsList.replaceChildren();
@@ -438,6 +453,31 @@ function renderRows(rows) {
   thoughtsList.innerHTML = rows
     .map(
       (row) => {
+        const isCompact = currentFilter === "all";
+
+        if (isCompact) {
+          return `
+        <article class="ui-thought-card ui-thought-card--compact" data-status="${row.status}">
+          <div class="ui-thought-top">
+            <div class="ui-thought-top-left">
+              <span class="ui-badge" data-status="${row.status}">${getStatusLabel(row.status)}</span>
+              <span class="ui-score-pill">${row.score != null ? `${row.score}/10` : "—"}</span>
+            </div>
+          </div>
+
+          <p class="ui-thought-text ui-thought-text--compact">${getThoughtText(row)}</p>
+
+          <div class="ui-compact-meta-row">
+            ${renderCompactMeta(row)}
+          </div>
+
+          <div class="ui-actions ui-actions--compact">
+            ${renderActions(row)}
+          </div>
+        </article>
+      `;
+        }
+
         const sections = [
           `
             <div class="ui-section">
