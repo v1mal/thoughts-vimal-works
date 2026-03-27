@@ -621,6 +621,14 @@ a {
   border-radius: var(--admin-radius-lg);
 }
 
+.ui-thought-card[data-busy="true"] {
+  opacity: 0.72;
+}
+
+.ui-thought-card[data-busy="true"] .ui-actions {
+  pointer-events: none;
+}
+
 .ui-thought-card[data-status="pending"] {
   border-left-color: #f59e0b;
 }

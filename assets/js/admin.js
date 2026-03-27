@@ -16,6 +16,9 @@ let supabaseClient = null;
 let currentSession = null;
 let currentRows = [];
 let currentFilter = "pending";
+const inFlightThoughtIds = new Set();
+const REQUEST_TIMEOUT_MS = 12000;
+let thoughtsRequestSequence = 0;
 let currentCounts = {
   pending: 0,
   approved: 0,
@@ -23,6 +26,22 @@ let currentCounts = {
   hidden: 0,
   all: 0,
 };
+
+function withTimeout(promise, ms, message) {
+  let timeoutId = null;
+
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = window.setTimeout(() => {
+      reject(new Error(message));
+    }, ms);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
+    }
+  });
+}
 
 function showMessage(element, message, options = {}) {
   if (!element) {
@@ -234,6 +253,49 @@ function updateStatusCounts(counts = currentCounts) {
   });
 }
 
+function setThoughtBusy(card, isBusy) {
+  if (!card) {
+    return;
+  }
+
+  card.dataset.busy = isBusy ? "true" : "false";
+
+  card.querySelectorAll("[data-action]").forEach((button) => {
+    if (button instanceof HTMLButtonElement) {
+      button.disabled = isBusy;
+    }
+  });
+}
+
+function applyOptimisticStatusChange(id, nextStatus) {
+  const row = currentRows.find((item) => item.id === id);
+
+  if (!row) {
+    return;
+  }
+
+  const previousStatus = row.status;
+
+  if (previousStatus && Object.hasOwn(currentCounts, previousStatus)) {
+    currentCounts[previousStatus] = Math.max(0, (currentCounts[previousStatus] || 0) - 1);
+  }
+
+  if (nextStatus && Object.hasOwn(currentCounts, nextStatus)) {
+    currentCounts[nextStatus] = (currentCounts[nextStatus] || 0) + 1;
+  }
+
+  row.status = nextStatus;
+  updateStatusCounts(currentCounts);
+
+  if (currentFilter === "all" || currentFilter === nextStatus) {
+    renderRows(currentRows);
+    return;
+  }
+
+  currentRows = currentRows.filter((item) => item.id !== id);
+  renderRows(currentRows);
+}
+
 function getActionClass(tone) {
   if (tone === "approve") {
     return "ui-button ui-button--primary";
@@ -373,12 +435,13 @@ function renderRows(rows) {
     .join("");
 }
 
-async function fetchThoughts() {
+async function fetchThoughts(filterOverride = currentFilter) {
   if (!supabaseClient) {
     return;
   }
 
-  const filter = currentFilter || "pending";
+  const filter = filterOverride || "pending";
+  const requestId = ++thoughtsRequestSequence;
   let query = supabaseClient
     .from("thoughts")
     .select(
@@ -391,10 +454,15 @@ async function fetchThoughts() {
   }
 
   const countsQuery = supabaseClient.from("thoughts").select("status");
-  const [{ data, error }, { data: countRows, error: countsError }] = await Promise.all([
-    query,
-    countsQuery,
-  ]);
+  const [{ data, error }, { data: countRows, error: countsError }] = await withTimeout(
+    Promise.all([query, countsQuery]),
+    REQUEST_TIMEOUT_MS,
+    "The dashboard took too long to refresh.",
+  );
+
+  if (requestId !== thoughtsRequestSequence) {
+    return;
+  }
 
   if (error) {
     throw error;
@@ -460,15 +528,27 @@ async function updateThoughtStatus(id, action) {
     payload.hidden_at = null;
   }
 
-  const { error } = await supabaseClient.from("thoughts").update(payload).eq("id", id);
+  const { error } = await withTimeout(
+    supabaseClient.from("thoughts").update(payload).eq("id", id),
+    REQUEST_TIMEOUT_MS,
+    "The moderation update took too long to complete.",
+  );
 
   if (error) {
     throw error;
   }
 
-  await fetchThoughts();
+  applyOptimisticStatusChange(id, payload.status);
   showMessage(feedMessage, getActionSuccessMessage(id, payload.status), {
     status: payload.status,
+  });
+
+  void fetchThoughts().catch((refreshError) => {
+    console.error("Failed to refresh thoughts after moderation action", refreshError);
+    showMessage(feedMessage, "Thought updated, but the dashboard did not fully refresh. Try changing the filter or refreshing the page.", {
+      status: payload.status,
+      label: getStatusLabel(payload.status),
+    });
   });
 }
 
@@ -503,7 +583,7 @@ async function handleSession(session) {
   adminApp.hidden = false;
   userEmail.textContent = email;
   await fetchPublicSummary();
-  await fetchThoughts();
+  await fetchThoughts(currentFilter);
 }
 
 async function signIn() {
@@ -565,13 +645,34 @@ async function boot() {
   });
 
   logoutButton?.addEventListener("click", async () => {
-    await supabaseClient.auth.signOut();
-    await handleSession(null);
+    if (logoutButton instanceof HTMLButtonElement) {
+      logoutButton.disabled = true;
+    }
+
+    try {
+      await withTimeout(
+        supabaseClient.auth.signOut(),
+        REQUEST_TIMEOUT_MS,
+        "Sign out took too long to complete.",
+      );
+      await handleSession(null);
+    } catch (error) {
+      console.error("Failed to sign out", error);
+      showMessage(feedMessage, "Unable to sign out right now. Please try again.", {
+        status: "rejected",
+        label: "Error",
+      });
+    } finally {
+      if (logoutButton instanceof HTMLButtonElement) {
+        logoutButton.disabled = false;
+      }
+    }
   });
 
   statusFilterTabs.forEach((tab) => {
     tab.addEventListener("click", async () => {
       const nextFilter = tab.dataset.value || "pending";
+      const previousFilter = currentFilter;
 
       if (nextFilter === currentFilter) {
         return;
@@ -580,9 +681,10 @@ async function boot() {
       setCurrentFilter(nextFilter);
 
       try {
-        await fetchThoughts();
+        await fetchThoughts(nextFilter);
       } catch (error) {
         console.error("Failed to load filtered thoughts", error);
+        setCurrentFilter(previousFilter);
         showMessage(feedMessage, "Unable to load this filter right now.", {
           status: "rejected",
           label: "Error",
@@ -643,7 +745,14 @@ async function boot() {
       return;
     }
 
-    button.disabled = true;
+    const card = button.closest(".ui-thought-card");
+
+    if (inFlightThoughtIds.has(id)) {
+      return;
+    }
+
+    inFlightThoughtIds.add(id);
+    setThoughtBusy(card, true);
 
     try {
       await updateThoughtStatus(id, action);
@@ -654,13 +763,18 @@ async function boot() {
         label: "Error",
       });
     } finally {
-      button.disabled = false;
+      inFlightThoughtIds.delete(id);
+      setThoughtBusy(card, false);
     }
   });
 
   const {
     data: { session },
-  } = await supabaseClient.auth.getSession();
+  } = await withTimeout(
+    supabaseClient.auth.getSession(),
+    REQUEST_TIMEOUT_MS,
+    "Checking your session took too long.",
+  );
 
   setCurrentFilter(currentFilter);
   await handleSession(session);
