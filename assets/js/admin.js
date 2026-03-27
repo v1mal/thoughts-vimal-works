@@ -387,6 +387,14 @@ function setThoughtBusy(card, isBusy) {
   });
 }
 
+function setQueueLoading(isLoading) {
+  if (!thoughtsList) {
+    return;
+  }
+
+  thoughtsList.dataset.loading = isLoading ? "true" : "false";
+}
+
 function applyOptimisticStatusChange(id, nextStatus) {
   const row = currentRows.find((item) => item.id === id);
 
@@ -417,6 +425,51 @@ function applyOptimisticStatusChange(id, nextStatus) {
 
   currentRows = currentRows.filter((item) => item.id !== id);
   renderRows(currentRows);
+}
+
+function captureUiSnapshot() {
+  return {
+    rows: cloneRows(currentRows),
+    counts: { ...currentCounts },
+    caches: new Map(Array.from(rowsCache.entries(), ([key, rows]) => [key, cloneRows(rows)])),
+    countsFetchedAt,
+  };
+}
+
+function restoreUiSnapshot(snapshot) {
+  if (!snapshot) {
+    return;
+  }
+
+  currentRows = cloneRows(snapshot.rows);
+  currentCounts = { ...snapshot.counts };
+  rowsCache.clear();
+  snapshot.caches.forEach((rows, key) => {
+    rowsCache.set(key, cloneRows(rows));
+  });
+  countsFetchedAt = snapshot.countsFetchedAt;
+  updateStatusCounts(currentCounts);
+  renderRows(currentRows);
+}
+
+function getActionNextStatus(action) {
+  if (action === "approve") {
+    return "approved";
+  }
+
+  if (action === "reject") {
+    return "rejected";
+  }
+
+  if (action === "hide") {
+    return "hidden";
+  }
+
+  if (action === "restore") {
+    return "pending";
+  }
+
+  return null;
 }
 
 function getActionClass(tone) {
@@ -668,6 +721,7 @@ async function fetchThoughts(filterOverride = currentFilter) {
     recalculateCountsFromCache();
   }
 
+  setQueueLoading(false);
   renderRows(currentRows);
 }
 
@@ -713,8 +767,6 @@ async function updateThoughtStatus(id, action) {
   if (error) {
     throw error;
   }
-
-  applyOptimisticStatusChange(id, payload.status);
   showMessage(feedMessage, getActionSuccessMessage(id, payload.status), {
     status: payload.status,
   });
@@ -871,8 +923,7 @@ async function boot() {
         currentRows = cachedRows;
         renderRows(currentRows);
       } else {
-        thoughtsList.replaceChildren();
-        updateQueueTitle(getCurrentFilterCount());
+        setQueueLoading(true);
         showQueueState(`Loading ${nextFilter} thoughts…`, "loading");
       }
 
@@ -881,6 +932,9 @@ async function boot() {
       } catch (error) {
         console.error("Failed to load filtered thoughts", error);
         setCurrentFilter(previousFilter);
+        setQueueLoading(false);
+        clearQueueState();
+        renderRows(currentRows);
         showMessage(feedMessage, "Unable to load this filter right now.", {
           status: "rejected",
           label: "Error",
@@ -899,23 +953,33 @@ async function boot() {
 
   refreshQueueButton?.addEventListener("click", async () => {
     const originalText = refreshQueueButton.textContent;
+    const hadRows = currentRows.length > 0;
+    const emptyMessage = getEmptyFilterMessage(currentFilter);
 
     if (refreshQueueButton instanceof HTMLButtonElement) {
       refreshQueueButton.disabled = true;
       refreshQueueButton.textContent = "Refreshing…";
     }
 
-    thoughtsList?.replaceChildren();
+    setQueueLoading(true);
     rowsCache.delete(currentFilter);
     rowsCache.delete("all");
     countsFetchedAt = 0;
-    updateQueueTitle(getCurrentFilterCount());
-    showQueueState(`Loading ${currentFilter} thoughts…`, "loading");
+
+    if (!hadRows) {
+      showQueueState(`Loading ${currentFilter} thoughts…`, "loading");
+    }
 
     try {
       await fetchThoughts(currentFilter);
     } catch (error) {
       console.error("Failed to refresh queue", error);
+      setQueueLoading(false);
+      if (!hadRows) {
+        showQueueState(emptyMessage, "empty");
+      } else {
+        clearQueueState();
+      }
       showMessage(feedMessage, "Unable to refresh the queue right now.", {
         status: "rejected",
         label: "Error",
@@ -965,25 +1029,35 @@ async function boot() {
     }
 
     const card = button.closest(".ui-thought-card");
+    const nextStatus = getActionNextStatus(action);
 
     if (inFlightThoughtIds.has(id)) {
       return;
     }
 
     inFlightThoughtIds.add(id);
-    setThoughtBusy(card, true);
+    const uiSnapshot = captureUiSnapshot();
+
+    if (nextStatus) {
+      applyOptimisticStatusChange(id, nextStatus);
+    } else {
+      setThoughtBusy(card, true);
+    }
 
     try {
       await updateThoughtStatus(id, action);
     } catch (error) {
       console.error(`Failed to ${action} ${id}`, error);
+      restoreUiSnapshot(uiSnapshot);
       showMessage(feedMessage, `Unable to ${action} this thought right now.`, {
         status: "rejected",
         label: "Error",
       });
     } finally {
       inFlightThoughtIds.delete(id);
-      setThoughtBusy(card, false);
+      if (!nextStatus) {
+        setThoughtBusy(card, false);
+      }
     }
   });
 
@@ -1000,6 +1074,7 @@ async function boot() {
 
   if (session) {
     showQueueState(`Loading ${currentFilter} thoughts…`, "loading");
+    setQueueLoading(true);
   }
 
   await handleSession(session);

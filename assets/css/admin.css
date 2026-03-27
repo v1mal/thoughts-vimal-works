@@ -753,6 +753,15 @@ a {
   gap: var(--space-md);
 }
 
+.ui-thought-list[data-loading="true"] {
+  opacity: 0.72;
+  transition: opacity 160ms ease;
+}
+
+.ui-thought-list[data-loading="true"] .ui-thought-card {
+  pointer-events: none;
+}
+
 .ui-queue {
   display: grid;
   gap: var(--space-md);
