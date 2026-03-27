@@ -39,6 +39,8 @@ const statusPanel = document.querySelector("[data-status]");
 const template = document.querySelector("#thought-card-template");
 const main = document.querySelector("main");
 const toast = document.querySelector("[data-toast]");
+const pagination = document.querySelector("[data-pagination]");
+const loadMoreButton = document.querySelector("[data-load-more]");
 const thoughtModalOverlay = document.querySelector("[data-thought-modal]");
 const thoughtModal = thoughtModalOverlay?.querySelector(".thought-modal");
 const thoughtModalCloseButton = thoughtModalOverlay?.querySelector(".thought-modal-close");
@@ -49,8 +51,12 @@ const siteUrlMeta = document.querySelector('meta[name="site-url"]');
 const canonicalSiteUrl = siteUrlMeta?.content || window.location.origin || window.location.href;
 let activeShareMenu = null;
 let toastTimeoutId = null;
+let allThoughts = [];
 let renderedThoughts = [];
 let htmlToImageLoader = null;
+let visibleThoughtCount = 30;
+
+const THOUGHTS_PER_PAGE = 30;
 
 function setStatus(message) {
   statusPanel.hidden = false;
@@ -203,7 +209,7 @@ function highlightThoughtCard(card) {
 }
 
 function getThoughtById(thoughtId) {
-  return renderedThoughts.find((thought) => thought.id === thoughtId) || null;
+  return allThoughts.find((thought) => thought.id === thoughtId) || null;
 }
 
 function closeThoughtModal({ clearHash = true } = {}) {
@@ -381,6 +387,26 @@ function renderThoughts(thoughts) {
   syncThoughtModalWithHash();
 }
 
+function syncPagination() {
+  if (!pagination || !loadMoreButton) {
+    return;
+  }
+
+  const hasMore = allThoughts.length > renderedThoughts.length;
+  pagination.hidden = !hasMore;
+
+  if (hasMore) {
+    const remaining = allThoughts.length - renderedThoughts.length;
+    loadMoreButton.textContent = remaining > THOUGHTS_PER_PAGE ? "Load more" : `Load final ${remaining}`;
+  }
+}
+
+function renderVisibleThoughts() {
+  const visibleThoughts = allThoughts.slice(0, visibleThoughtCount);
+  renderThoughts(visibleThoughts);
+  syncPagination();
+}
+
 function isValidThought(thought) {
   return (
     thought &&
@@ -528,20 +554,35 @@ async function loadThoughts() {
     const thoughts = payload.thoughts.filter(isValidThought);
 
     if (thoughts.length === 0) {
+      allThoughts = [];
       grid.replaceChildren();
+      if (pagination) {
+        pagination.hidden = true;
+      }
       setStatus("No thoughts yet.");
       return;
     }
 
+    allThoughts = thoughts;
+    visibleThoughtCount = THOUGHTS_PER_PAGE;
     clearStatus();
-    renderThoughts(thoughts);
+    renderVisibleThoughts();
   } catch (error) {
     console.error("Unable to load thoughts", error);
+    allThoughts = [];
     grid.replaceChildren();
+    if (pagination) {
+      pagination.hidden = true;
+    }
     setStatus("Unable to load thoughts right now.");
   } finally {
     main.setAttribute("aria-busy", "false");
   }
 }
+
+loadMoreButton?.addEventListener("click", () => {
+  visibleThoughtCount += THOUGHTS_PER_PAGE;
+  renderVisibleThoughts();
+});
 
 loadThoughts();
