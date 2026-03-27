@@ -45,6 +45,8 @@
   --admin-radius-lg: 18px;
   --admin-radius-md: 12px;
   --admin-radius-pill: 999px;
+  --admin-radius-shell: 32px;
+  --admin-radius-banner: 28px;
   --space-2xs: 0.25rem;
   --space-xs: 0.5rem;
   --space-sm: 0.75rem;
@@ -57,7 +59,9 @@
   --space-5xl: 3rem;
   --space-stack-md: 1.15rem;
   --space-stack-lg: 1.9rem;
-  --space-stack-auth: 1rem;
+  --space-stack-auth: 0.7rem;
+  --space-stack-auth-panel: 1.1rem;
+  --space-stack-auth-surface: 1.5rem;
   --space-inline-tight: 0.55rem;
   --space-cluster-tight: 0.6rem;
   --space-inset-compact-y: 0.3rem;
@@ -73,17 +77,31 @@
   --type-card-title-size: 1.3rem;
   --type-card-title-line: 1.12;
   --type-inline-link-size: 0.88rem;
-  --type-auth-display-size: clamp(2.8rem, 5vw, 4.4rem);
+  --type-inline-footer-size: 0.8rem;
+  --type-kicker-quiet-size: 0.62rem;
+  --type-kicker-quiet-spacing: 0.24em;
+  --type-user-size: 1.08rem;
+  --type-queue-title-size: 1rem;
+  --type-toolbar-size: 0.78rem;
+  --type-note-size: 0.75rem;
+  --type-banner-body-size: 0.9rem;
+  --type-auth-display-size: clamp(2.65rem, 4.7vw, 4rem);
   --type-auth-display-line: 0.92;
-  --type-auth-heading-size: clamp(2.2rem, 4vw, 3.15rem);
-  --type-auth-heading-line: 0.93;
+  --type-auth-heading-size: clamp(2rem, 3.7vw, 2.95rem);
+  --type-auth-heading-line: 0.98;
+  --type-auth-body-width: 27ch;
+  --type-auth-copy-width: 31ch;
   --type-body-size: 0.95rem;
   --type-body-line: 1.58;
   --type-button-size: 0.84rem;
   --type-button-line: 1;
   --control-height-md: 2.75rem;
+  --control-height-auth: 3.45rem;
+  --control-height-toolbar: 2.35rem;
   --control-height-pill: 1.85rem;
   --control-height-count: 1.55rem;
+  --size-icon-sm: 0.7rem;
+  --size-icon-md: 1.1rem;
   --status-pending-bg: #fef3c7;
   --status-pending-fg: #92400e;
   --status-approved-bg: #dcfce7;
@@ -140,12 +158,16 @@ a {
 }
 
 .admin-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: 1fr auto;
   width: min(1440px, calc(100vw - 1.5rem));
   margin: 0 auto;
-  padding: var(--space-md) 0 var(--space-3xl);
+  padding: var(--space-md) 0 0;
 }
 
 .ui-kicker {
+  margin: 0;
   font-size: var(--type-kicker-size);
   font-weight: 800;
   line-height: 1;
@@ -159,10 +181,42 @@ a {
   gap: var(--space-stack-auth);
 }
 
+.auth-form-panel .ui-kicker {
+  font-size: var(--type-kicker-quiet-size);
+  letter-spacing: var(--type-kicker-quiet-spacing);
+  color: var(--admin-muted-fg-soft);
+}
+
 .admin-main {
   display: grid;
   gap: var(--space-md);
   padding-top: 0;
+}
+
+.admin-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-top: var(--space-4xl);
+  padding: var(--space-md) 0 var(--space-lg);
+  border-top: 1px solid var(--admin-border);
+}
+
+.admin-footer-link {
+  color: var(--admin-muted-fg);
+  font-size: var(--type-inline-footer-size);
+  line-height: 1.2;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.admin-footer-link:hover,
+.admin-footer-link:focus-visible {
+  color: var(--admin-fg);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.16em;
 }
 
 .ui-panel,
@@ -297,25 +351,26 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-xl) 0 var(--space-xs);
+  padding: var(--space-xl) 0 var(--space-md);
 }
 
 .auth-shell {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
+  grid-template-columns: 1fr 1fr;
   width: 100%;
   max-width: 80rem;
-  min-height: 42rem;
-  border-radius: 32px;
+  min-height: 37rem;
+  border-radius: var(--admin-radius-shell);
   overflow: hidden;
   box-shadow: var(--admin-shadow);
 }
 
 .auth-brand-panel {
   position: relative;
-  display: flex;
-  align-items: center;
-  padding: var(--space-5xl);
+  display: grid;
+  align-content: center;
+  padding: var(--space-4xl);
+  box-shadow: inset -20px 0 32px rgba(11, 31, 40, 0.08);
   background:
     radial-gradient(circle at left bottom, rgba(255, 255, 255, 0.18) 0, rgba(255, 255, 255, 0.18) 1px, transparent 1px) 0 0 / 380px 380px,
     radial-gradient(circle at left bottom, rgba(255, 255, 255, 0.14) 0, rgba(255, 255, 255, 0.14) 1px, transparent 1px) 36px 30px / 280px 280px,
@@ -326,29 +381,29 @@ a {
 .auth-brand-panel::after {
   content: "";
   position: absolute;
-  inset: auto auto -8rem -10rem;
-  width: 28rem;
-  height: 28rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  inset: auto auto -9rem -12rem;
+  width: 31rem;
+  height: 31rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 999px;
 }
 
 .auth-brand-panel::before {
   content: "";
   position: absolute;
-  inset: auto auto -5rem -5rem;
-  width: 20rem;
-  height: 20rem;
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  inset: auto auto -6rem -7rem;
+  width: 23rem;
+  height: 23rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 999px;
 }
 
 .auth-brand-copy {
   position: relative;
   z-index: 1;
-  max-width: 28rem;
+  max-width: 26rem;
   display: grid;
-  gap: var(--space-stack-md);
+  gap: var(--space-stack-auth-panel);
 }
 
 .auth-brand-mark {
@@ -366,46 +421,48 @@ a {
   font-size: var(--type-auth-display-size);
   line-height: var(--type-auth-display-line);
   font-weight: 800;
-  letter-spacing: -0.07em;
+  letter-spacing: -0.065em;
 }
 
 .auth-brand-body {
   margin: 0;
-  max-width: 28ch;
+  max-width: var(--type-auth-body-width);
   font-size: var(--type-body-size);
   line-height: var(--type-body-line);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--banner-white);
 }
 
 .auth-form-panel {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-5xl);
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  padding: var(--space-4xl);
   background: #ffffff;
+  box-shadow: inset 18px 0 28px rgba(255, 255, 255, 0.35);
 }
 
 .auth-card-inner {
   width: 100%;
-  max-width: 23rem;
+  max-width: 24.5rem;
   display: grid;
-  gap: var(--space-stack-lg);
+  gap: var(--space-2xl);
 }
 
 .auth-title {
   margin: 0;
   font-size: var(--type-auth-heading-size);
   line-height: var(--type-auth-heading-line);
-  font-weight: 800;
-  letter-spacing: -0.06em;
+  font-weight: 700;
+  letter-spacing: -0.05em;
 }
 
 .auth-copy {
-  margin: 0;
+  margin: var(--space-xs) 0 0;
+  max-width: var(--type-auth-copy-width);
   font-size: var(--type-body-size);
   line-height: var(--type-body-line);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--admin-muted-fg);
 }
 
@@ -413,25 +470,32 @@ a {
 .ui-button.ui-button--auth:hover,
 .ui-button.ui-button--auth:focus-visible {
   width: 100%;
-  min-height: 3.25rem;
-  padding-inline: 1.25rem;
+  min-height: var(--control-height-auth);
+  padding-inline: var(--space-lg);
   border-color: #111111;
   background: #111111;
   color: #ffffff;
   border-radius: var(--admin-radius-pill);
   box-shadow: var(--admin-shadow);
+  align-self: start;
 }
 
 .ui-button.ui-button--auth:hover {
   background: #000000;
   border-color: #000000;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+
+.ui-button.ui-button--auth:focus-visible {
+  box-shadow: 0 0 0 2px var(--admin-bg), 0 0 0 4px rgba(17, 17, 17, 0.18);
 }
 
 .ui-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
   min-height: var(--control-height-md);
   padding: 0.68rem var(--space-md);
   border: 1px solid transparent;
@@ -443,7 +507,7 @@ a {
   text-decoration: none;
   cursor: pointer;
   border-radius: var(--admin-radius-md);
-  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
 }
 
 .ui-button:hover {
@@ -530,8 +594,8 @@ a {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: 1.25rem;
-  height: 1.25rem;
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
   line-height: 0;
 }
 
@@ -548,7 +612,8 @@ a {
 }
 
 .ui-user-email {
-  font-size: 1.08rem;
+  margin: 0;
+  font-size: var(--type-user-size);
   line-height: 1.15;
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -710,7 +775,7 @@ a {
 
 .ui-queue-title {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--type-queue-title-size);
   line-height: 1.2;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -718,9 +783,9 @@ a {
 }
 
 .ui-button--toolbar {
-  min-height: 2.35rem;
+  min-height: var(--control-height-toolbar);
   padding-inline: var(--space-sm);
-  font-size: 0.78rem;
+  font-size: var(--type-toolbar-size);
   letter-spacing: 0.01em;
   white-space: nowrap;
 }
@@ -1030,6 +1095,10 @@ a {
   gap: var(--space-xs);
 }
 
+.workspace-sidebar-identity {
+  gap: var(--space-sm);
+}
+
 .workspace-sidebar-controls {
   gap: var(--space-md);
 }
@@ -1050,7 +1119,7 @@ a {
   border: 1px solid var(--admin-border-soft);
   background: color-mix(in srgb, var(--admin-muted) 62%, var(--admin-card));
   border-radius: var(--admin-radius-md);
-  font-size: 0.75rem;
+  font-size: var(--type-note-size);
   font-weight: 500;
   line-height: 1.45;
   color: var(--admin-muted-fg);
@@ -1059,8 +1128,8 @@ a {
 .workspace-sidebar-note-icon {
   position: relative;
   flex: 0 0 auto;
-  width: 0.7rem;
-  height: 0.7rem;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
   margin-top: 0.2rem;
   border-radius: var(--admin-radius-pill);
   background: color-mix(in srgb, var(--status-approved-fg) 18%, transparent);
@@ -1084,7 +1153,7 @@ a {
 }
 
 .workspace-banner {
-  border-radius: 28px;
+  border-radius: var(--admin-radius-banner);
   overflow: hidden;
   box-shadow: var(--admin-shadow);
 }
@@ -1162,7 +1231,7 @@ a {
 .workspace-banner-body {
   margin: 0;
   max-width: 48ch;
-  font-size: 0.9rem;
+  font-size: var(--type-banner-body-size);
   line-height: 1.45;
   font-weight: 600;
   color: var(--banner-white);
@@ -1206,7 +1275,7 @@ a {
 
   .auth-brand-panel,
   .auth-form-panel {
-    padding: 2rem;
+    padding: var(--space-3xl);
   }
 
   .ui-sections {
@@ -1283,9 +1352,21 @@ a {
     gap: 0.75rem;
   }
 
+  .admin-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xs);
+    padding: 0.9rem 0 1.2rem;
+  }
+
   .auth-layout {
     min-height: 0;
-    padding-top: 0.25rem;
+    padding-top: var(--space-2xs);
+    padding-bottom: var(--space-sm);
+  }
+
+  .ui-stack-auth {
+    gap: var(--space-xs);
   }
 
   .ui-panel,
@@ -1380,11 +1461,15 @@ a {
   }
 
   .auth-title {
-    font-size: 2.15rem;
+    font-size: 1.9rem;
   }
 
   .auth-brand-title {
-    font-size: 2.6rem;
+    font-size: 2.45rem;
+  }
+
+  .auth-copy {
+    max-width: 29ch;
   }
 
   .ui-thought-text {
