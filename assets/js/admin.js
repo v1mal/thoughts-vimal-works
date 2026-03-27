@@ -10,11 +10,19 @@ const statusFilterTabs = Array.from(document.querySelectorAll("[data-status-filt
 const thoughtsList = document.querySelector("[data-thoughts-list]");
 const userEmail = document.querySelector("[data-user-email]");
 const listMessage = document.querySelector("[data-list-message]");
+const publicSummary = document.querySelector("[data-public-summary]");
 
 let supabaseClient = null;
 let currentSession = null;
 let currentRows = [];
 let currentFilter = "pending";
+let currentCounts = {
+  pending: 0,
+  approved: 0,
+  rejected: 0,
+  hidden: 0,
+  all: 0,
+};
 
 function getMessageStatusLabel(status) {
   if (!status) {
@@ -81,6 +89,74 @@ function formatDate(value) {
   }).format(date);
 }
 
+function formatRelativeTime(value) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  const diffMs = date.getTime() - Date.now();
+  const diffMinutes = Math.round(diffMs / 60000);
+  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+
+  if (Math.abs(diffMinutes) < 60) {
+    return rtf.format(diffMinutes, "minute");
+  }
+
+  const diffHours = Math.round(diffMinutes / 60);
+
+  if (Math.abs(diffHours) < 24) {
+    return rtf.format(diffHours, "hour");
+  }
+
+  const diffDays = Math.round(diffHours / 24);
+  return rtf.format(diffDays, "day");
+}
+
+async function fetchPublicSummary() {
+  if (!publicSummary) {
+    return;
+  }
+
+  try {
+    const response = await fetch("./data/thoughts.json", { cache: "no-store" });
+
+    if (!response.ok) {
+      throw new Error(`Unexpected response: ${response.status}`);
+    }
+
+    const payload = await response.json();
+    const thoughts = Array.isArray(payload?.thoughts) ? payload.thoughts : [];
+
+    if (!thoughts.length) {
+      publicSummary.hidden = true;
+      publicSummary.textContent = "";
+      return;
+    }
+
+    const latestTimestamp = thoughts[0]?.timestamp;
+    const relative = formatRelativeTime(latestTimestamp);
+
+    if (!relative) {
+      publicSummary.hidden = false;
+      publicSummary.textContent = `${thoughts.length} items are live on the public site.`;
+      return;
+    }
+
+    publicSummary.hidden = false;
+    publicSummary.textContent = `Latest published thought ${relative} — ${thoughts.length} items live on public site`;
+  } catch (error) {
+    console.error("Failed to load public summary", error);
+    publicSummary.hidden = true;
+    publicSummary.textContent = "";
+  }
+}
+
 function getThoughtText(row) {
   return row.text_published || row.text_original || "";
 }
@@ -144,6 +220,25 @@ function setCurrentFilter(value) {
   statusFilterTabs.forEach((tab) => {
     const isActive = tab.dataset.value === currentFilter;
     tab.setAttribute("aria-selected", String(isActive));
+  });
+}
+
+function updateStatusCounts(counts = currentCounts) {
+  currentCounts = {
+    pending: counts.pending || 0,
+    approved: counts.approved || 0,
+    rejected: counts.rejected || 0,
+    hidden: counts.hidden || 0,
+    all: counts.all || 0,
+  };
+
+  statusFilterTabs.forEach((tab) => {
+    const value = tab.dataset.value || "all";
+    const countElement = tab.querySelector("[data-status-count]");
+
+    if (countElement) {
+      countElement.textContent = String(currentCounts[value] ?? 0);
+    }
   });
 }
 
@@ -303,13 +398,40 @@ async function fetchThoughts() {
     query = query.eq("status", filter);
   }
 
-  const { data, error } = await query;
+  const countsQuery = supabaseClient.from("thoughts").select("status");
+  const [{ data, error }, { data: countRows, error: countsError }] = await Promise.all([
+    query,
+    countsQuery,
+  ]);
 
   if (error) {
     throw error;
   }
 
+  if (countsError) {
+    throw countsError;
+  }
+
   currentRows = data || [];
+  const nextCounts = {
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    hidden: 0,
+    all: 0,
+  };
+
+  (countRows || []).forEach((row) => {
+    const status = row.status;
+
+    if (status && Object.hasOwn(nextCounts, status)) {
+      nextCounts[status] += 1;
+    }
+
+    nextCounts.all += 1;
+  });
+
+  updateStatusCounts(nextCounts);
   renderRows(currentRows);
 }
 
@@ -388,6 +510,7 @@ async function handleSession(session) {
   authPanel.hidden = true;
   adminApp.hidden = false;
   userEmail.textContent = email;
+  await fetchPublicSummary();
   await fetchThoughts();
 }
 

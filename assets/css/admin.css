@@ -532,6 +532,7 @@ a {
 .ui-tab {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   width: 100%;
   min-height: 2.75rem;
   padding: 0.7rem 0.9rem;
@@ -547,6 +548,26 @@ a {
   transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
 }
 
+.ui-tab__label {
+  min-width: 0;
+}
+
+.ui-tab__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.55rem;
+  height: 1.55rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: rgba(24, 24, 27, 0.06);
+  color: inherit;
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
 .ui-tab:hover {
   background: var(--admin-muted);
   color: var(--admin-fg);
@@ -556,6 +577,10 @@ a {
   border-color: var(--admin-fg);
   background: var(--admin-fg);
   color: #ffffff;
+}
+
+.ui-tab[aria-selected="true"] .ui-tab__count {
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .ui-tab:focus-visible {
@@ -577,6 +602,15 @@ a {
   font-weight: 600;
   line-height: var(--type-body-line);
   color: var(--admin-muted-fg);
+}
+
+.workspace-summary {
+  border-color: color-mix(in srgb, var(--status-approved-fg) 18%, var(--admin-border));
+  background: color-mix(in srgb, var(--status-approved-bg) 52%, var(--admin-card));
+  color: var(--status-approved-fg);
+  font-size: 0.94rem;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .ui-thought-list {

@@ -109,19 +109,24 @@
                 <span class="ui-label">STATUS</span>
                 <div class="ui-tablist" role="tablist" aria-label="Status filter">
                   <button class="ui-tab" type="button" role="tab" data-status-filter-tab data-value="pending" aria-selected="true">
-                    Pending
+                    <span class="ui-tab__label">Pending</span>
+                    <span class="ui-tab__count" data-status-count>0</span>
                   </button>
                   <button class="ui-tab" type="button" role="tab" data-status-filter-tab data-value="approved" aria-selected="false">
-                    Approved
+                    <span class="ui-tab__label">Approved</span>
+                    <span class="ui-tab__count" data-status-count>0</span>
                   </button>
                   <button class="ui-tab" type="button" role="tab" data-status-filter-tab data-value="rejected" aria-selected="false">
-                    Rejected
+                    <span class="ui-tab__label">Rejected</span>
+                    <span class="ui-tab__count" data-status-count>0</span>
                   </button>
                   <button class="ui-tab" type="button" role="tab" data-status-filter-tab data-value="hidden" aria-selected="false">
-                    Hidden
+                    <span class="ui-tab__label">Hidden</span>
+                    <span class="ui-tab__count" data-status-count>0</span>
                   </button>
                   <button class="ui-tab" type="button" role="tab" data-status-filter-tab data-value="all" aria-selected="false">
-                    All
+                    <span class="ui-tab__label">All</span>
+                    <span class="ui-tab__count" data-status-count>0</span>
                   </button>
                 </div>
               </div>
@@ -147,6 +152,8 @@
                 </div>
               </div>
             </section>
+
+            <section class="ui-panel workspace-summary" data-public-summary hidden></section>
 
             <div class="ui-alert-feed">
               <section class="ui-panel ui-alert" data-feed-message hidden></section>
