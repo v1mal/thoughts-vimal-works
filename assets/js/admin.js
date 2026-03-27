@@ -10,7 +10,7 @@ const statusFilterTabs = Array.from(document.querySelectorAll("[data-status-filt
 const thoughtsList = document.querySelector("[data-thoughts-list]");
 const queueTitle = document.querySelector("[data-queue-title]");
 const queueSection = document.querySelector("[data-queue-section]");
-const reviewQueueButton = document.querySelector("[data-review-queue]");
+const refreshQueueButton = document.querySelector("[data-refresh-queue]");
 const userEmail = document.querySelector("[data-user-email]");
 const listMessage = document.querySelector("[data-list-message]");
 const publicSummary = document.querySelector("[data-public-summary]");
@@ -897,11 +897,35 @@ async function boot() {
     }
   });
 
-  reviewQueueButton?.addEventListener("click", () => {
-    queueSection?.scrollIntoView({ behavior: "smooth", block: "start" });
-    window.setTimeout(() => {
-      queueSection?.focus({ preventScroll: true });
-    }, 180);
+  refreshQueueButton?.addEventListener("click", async () => {
+    const originalText = refreshQueueButton.textContent;
+
+    if (refreshQueueButton instanceof HTMLButtonElement) {
+      refreshQueueButton.disabled = true;
+      refreshQueueButton.textContent = "Refreshing…";
+    }
+
+    thoughtsList?.replaceChildren();
+    rowsCache.delete(currentFilter);
+    rowsCache.delete("all");
+    countsFetchedAt = 0;
+    updateQueueTitle(getCurrentFilterCount());
+    showQueueState(`Loading ${currentFilter} thoughts…`, "loading");
+
+    try {
+      await fetchThoughts(currentFilter);
+    } catch (error) {
+      console.error("Failed to refresh queue", error);
+      showMessage(feedMessage, "Unable to refresh the queue right now.", {
+        status: "rejected",
+        label: "Error",
+      });
+    } finally {
+      if (refreshQueueButton instanceof HTMLButtonElement) {
+        refreshQueueButton.disabled = false;
+        refreshQueueButton.textContent = originalText;
+      }
+    }
   });
 
   thoughtsList?.addEventListener("click", async (event) => {
