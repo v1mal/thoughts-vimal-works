@@ -18,7 +18,10 @@ let currentRows = [];
 let currentFilter = "pending";
 const inFlightThoughtIds = new Set();
 const REQUEST_TIMEOUT_MS = 12000;
+const COUNTS_CACHE_TTL_MS = 30000;
 let thoughtsRequestSequence = 0;
+let countsFetchedAt = 0;
+const rowsCache = new Map();
 let currentCounts = {
   pending: 0,
   approved: 0,
@@ -41,6 +44,10 @@ function withTimeout(promise, ms, message) {
       window.clearTimeout(timeoutId);
     }
   });
+}
+
+function cloneRows(rows = []) {
+  return rows.map((row) => ({ ...row }));
 }
 
 function showMessage(element, message, options = {}) {
@@ -70,6 +77,13 @@ function clearMessage(element) {
   element.hidden = true;
   delete element.dataset.status;
   element.innerHTML = "";
+}
+
+function showLoadingMessage(element, message) {
+  showMessage(element, message, {
+    status: "hidden",
+    label: "Loading",
+  });
 }
 
 function isConfigured() {
@@ -253,6 +267,45 @@ function updateStatusCounts(counts = currentCounts) {
   });
 }
 
+function cacheRows(filter, rows) {
+  rowsCache.set(filter || "pending", cloneRows(rows || []));
+}
+
+function getCachedRows(filter) {
+  const cached = rowsCache.get(filter || "pending");
+  return cached ? cloneRows(cached) : null;
+}
+
+function hasFreshCounts() {
+  return Date.now() - countsFetchedAt < COUNTS_CACHE_TTL_MS;
+}
+
+function recalculateCountsFromCache() {
+  const allRows = getCachedRows("all");
+
+  if (!allRows) {
+    return false;
+  }
+
+  const nextCounts = {
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    hidden: 0,
+    all: allRows.length,
+  };
+
+  allRows.forEach((row) => {
+    if (row.status && Object.hasOwn(nextCounts, row.status)) {
+      nextCounts[row.status] += 1;
+    }
+  });
+
+  countsFetchedAt = Date.now();
+  updateStatusCounts(nextCounts);
+  return true;
+}
+
 function setThoughtBusy(card, isBusy) {
   if (!card) {
     return;
@@ -285,6 +338,9 @@ function applyOptimisticStatusChange(id, nextStatus) {
   }
 
   row.status = nextStatus;
+  rowsCache.delete("all");
+  rowsCache.delete(previousStatus);
+  rowsCache.delete(nextStatus);
   updateStatusCounts(currentCounts);
 
   if (currentFilter === "all" || currentFilter === nextStatus) {
@@ -442,6 +498,7 @@ async function fetchThoughts(filterOverride = currentFilter) {
 
   const filter = filterOverride || "pending";
   const requestId = ++thoughtsRequestSequence;
+  const needsCounts = !hasFreshCounts();
   let query = supabaseClient
     .from("thoughts")
     .select(
@@ -453,9 +510,14 @@ async function fetchThoughts(filterOverride = currentFilter) {
     query = query.eq("status", filter);
   }
 
-  const countsQuery = supabaseClient.from("thoughts").select("status");
-  const [{ data, error }, { data: countRows, error: countsError }] = await withTimeout(
-    Promise.all([query, countsQuery]),
+  const requests = [query];
+
+  if (needsCounts) {
+    requests.push(supabaseClient.from("thoughts").select("status"));
+  }
+
+  const [rowsResult, countsResult] = await withTimeout(
+    Promise.all(requests),
     REQUEST_TIMEOUT_MS,
     "The dashboard took too long to refresh.",
   );
@@ -464,34 +526,46 @@ async function fetchThoughts(filterOverride = currentFilter) {
     return;
   }
 
+  const { data, error } = rowsResult;
+
   if (error) {
     throw error;
   }
 
-  if (countsError) {
-    throw countsError;
-  }
-
   currentRows = data || [];
-  const nextCounts = {
-    pending: 0,
-    approved: 0,
-    rejected: 0,
-    hidden: 0,
-    all: 0,
-  };
+  cacheRows(filter, currentRows);
 
-  (countRows || []).forEach((row) => {
-    const status = row.status;
+  if (needsCounts) {
+    const { data: countRows, error: countsError } = countsResult || {};
 
-    if (status && Object.hasOwn(nextCounts, status)) {
-      nextCounts[status] += 1;
+    if (countsError) {
+      throw countsError;
     }
 
-    nextCounts.all += 1;
-  });
+    const nextCounts = {
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      hidden: 0,
+      all: 0,
+    };
 
-  updateStatusCounts(nextCounts);
+    (countRows || []).forEach((row) => {
+      const status = row.status;
+
+      if (status && Object.hasOwn(nextCounts, status)) {
+        nextCounts[status] += 1;
+      }
+
+      nextCounts.all += 1;
+    });
+
+    countsFetchedAt = Date.now();
+    updateStatusCounts(nextCounts);
+  } else if (!hasFreshCounts()) {
+    recalculateCountsFromCache();
+  }
+
   renderRows(currentRows);
 }
 
@@ -563,6 +637,8 @@ async function handleSession(session) {
     adminApp.hidden = true;
     userEmail.textContent = "";
     thoughtsList.replaceChildren();
+    rowsCache.clear();
+    countsFetchedAt = 0;
     clearMessage(feedMessage);
     clearMessage(listMessage);
     return;
@@ -629,7 +705,9 @@ async function boot() {
   );
 
   loginButton?.addEventListener("click", async () => {
+    const originalText = loginButton.textContent;
     loginButton.disabled = true;
+    loginButton.textContent = "Continuing…";
 
     try {
       await signIn();
@@ -641,12 +719,16 @@ async function boot() {
       });
     } finally {
       loginButton.disabled = false;
+      loginButton.textContent = originalText;
     }
   });
 
   logoutButton?.addEventListener("click", async () => {
+    const originalText = logoutButton.textContent;
+
     if (logoutButton instanceof HTMLButtonElement) {
       logoutButton.disabled = true;
+      logoutButton.textContent = "Signing out…";
     }
 
     try {
@@ -665,6 +747,7 @@ async function boot() {
     } finally {
       if (logoutButton instanceof HTMLButtonElement) {
         logoutButton.disabled = false;
+        logoutButton.textContent = originalText;
       }
     }
   });
@@ -679,6 +762,15 @@ async function boot() {
       }
 
       setCurrentFilter(nextFilter);
+      const cachedRows = getCachedRows(nextFilter);
+
+      if (cachedRows) {
+        currentRows = cachedRows;
+        renderRows(currentRows);
+      } else {
+        thoughtsList.replaceChildren();
+        showLoadingMessage(listMessage, `Loading ${nextFilter} thoughts…`);
+      }
 
       try {
         await fetchThoughts(nextFilter);
@@ -777,6 +869,11 @@ async function boot() {
   );
 
   setCurrentFilter(currentFilter);
+
+  if (session) {
+    showLoadingMessage(listMessage, `Loading ${currentFilter} thoughts…`);
+  }
+
   await handleSession(session);
 
   supabaseClient.auth.onAuthStateChange(async (_event, session) => {
