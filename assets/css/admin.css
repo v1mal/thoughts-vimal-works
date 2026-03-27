@@ -879,7 +879,9 @@ a {
 }
 
 .workspace-sidebar-note {
-  font-size: 0.88rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--admin-muted-fg);
 }
 
 .workspace-main {
@@ -1086,7 +1088,7 @@ a {
   }
 
   .workspace-sidebar-note {
-    font-size: 0.84rem;
+    font-size: 0.75rem;
   }
 
   .workspace-banner-panel {
