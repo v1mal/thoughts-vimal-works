@@ -725,11 +725,15 @@ async function fetchThoughts(filterOverride = currentFilter) {
   renderRows(currentRows);
 }
 
-async function updateThoughtStatus(id, action) {
-  const row = currentRows.find((item) => item.id === id);
+async function updateThoughtStatus(id, action, rowSnapshot = null) {
+  const row = rowSnapshot || currentRows.find((item) => item.id === id);
 
-  if (!row || !supabaseClient || !currentSession?.user?.email) {
-    return;
+  if (!row) {
+    throw new Error(`Unable to locate thought ${id} for moderation update.`);
+  }
+
+  if (!supabaseClient || !currentSession?.user?.email) {
+    throw new Error("The admin session is not ready for moderation updates.");
   }
 
   const payload = {
@@ -1029,6 +1033,7 @@ async function boot() {
     }
 
     const card = button.closest(".ui-thought-card");
+    const rowSnapshot = cloneRows(currentRows).find((item) => item.id === id);
     const nextStatus = getActionNextStatus(action);
 
     if (inFlightThoughtIds.has(id)) {
@@ -1045,7 +1050,7 @@ async function boot() {
     }
 
     try {
-      await updateThoughtStatus(id, action);
+      await updateThoughtStatus(id, action, rowSnapshot);
     } catch (error) {
       console.error(`Failed to ${action} ${id}`, error);
       restoreUiSnapshot(uiSnapshot);
