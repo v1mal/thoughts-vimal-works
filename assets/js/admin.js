@@ -8,6 +8,9 @@ const loginButton = document.querySelector("[data-login-button]");
 const logoutButton = document.querySelector("[data-logout-button]");
 const statusFilterTabs = Array.from(document.querySelectorAll("[data-status-filter-tab]"));
 const thoughtsList = document.querySelector("[data-thoughts-list]");
+const queueTitle = document.querySelector("[data-queue-title]");
+const queueSection = document.querySelector("[data-queue-section]");
+const reviewQueueButton = document.querySelector("[data-review-queue]");
 const userEmail = document.querySelector("[data-user-email]");
 const listMessage = document.querySelector("[data-list-message]");
 const publicSummary = document.querySelector("[data-public-summary]");
@@ -85,6 +88,46 @@ function showLoadingMessage(element, message) {
     label: "Loading",
   });
 }
+
+function getQueueHeading(filter, count) {
+  const total = Number.isFinite(count) ? count : 0;
+
+  if (filter === "all") {
+    return `All Thoughts (${total})`;
+  }
+
+  const label = getStatusLabel(filter);
+  return `${label.charAt(0).toUpperCase()}${label.slice(1)} Queue (${total})`;
+}
+
+function updateQueueTitle(count) {
+  if (!queueTitle) {
+    return;
+  }
+
+  queueTitle.textContent = getQueueHeading(currentFilter, count);
+}
+
+function showQueueState(message, state = "empty") {
+  if (!listMessage) {
+    return;
+  }
+
+  listMessage.hidden = false;
+  listMessage.dataset.state = state;
+  listMessage.innerHTML = `<p class="ui-queue-empty-copy">${message}</p>`;
+}
+
+function clearQueueState() {
+  if (!listMessage) {
+    return;
+  }
+
+  listMessage.hidden = true;
+  delete listMessage.dataset.state;
+  listMessage.innerHTML = "";
+}
+
 
 function isConfigured() {
   return (
@@ -243,6 +286,14 @@ function getEmptyFilterMessage(filter) {
   return "No thoughts are available right now.";
 }
 
+function getCurrentFilterCount() {
+  if (currentFilter === "all") {
+    return currentCounts.all || 0;
+  }
+
+  return currentCounts[currentFilter] || 0;
+}
+
 function setCurrentFilter(value) {
   currentFilter = value || "pending";
 
@@ -253,6 +304,8 @@ function setCurrentFilter(value) {
 }
 
 function updateStatusCounts(counts = currentCounts) {
+  const previousCounts = { ...currentCounts };
+
   currentCounts = {
     pending: counts.pending || 0,
     approved: counts.approved || 0,
@@ -266,7 +319,17 @@ function updateStatusCounts(counts = currentCounts) {
     const countElement = tab.querySelector("[data-status-count]");
 
     if (countElement) {
-      countElement.textContent = String(currentCounts[value] ?? 0);
+      const nextCount = currentCounts[value] ?? 0;
+      countElement.textContent = String(nextCount);
+
+      if ((previousCounts[value] ?? 0) !== nextCount) {
+        countElement.dataset.updated = "true";
+        window.setTimeout(() => {
+          if (countElement.dataset.updated === "true") {
+            delete countElement.dataset.updated;
+          }
+        }, 280);
+      }
     }
   });
 }
@@ -439,16 +502,15 @@ function renderCompactMeta(row) {
 }
 
 function renderRows(rows) {
+  updateQueueTitle(rows.length);
+
   if (!rows.length) {
     thoughtsList.replaceChildren();
-    showMessage(listMessage, getEmptyFilterMessage(currentFilter), {
-      status: currentFilter === "all" ? "hidden" : currentFilter,
-      label: currentFilter === "all" ? "Notice" : getStatusLabel(currentFilter),
-    });
+    showQueueState(getEmptyFilterMessage(currentFilter));
     return;
   }
 
-  clearMessage(listMessage);
+  clearQueueState();
 
   thoughtsList.innerHTML = rows
     .map(
@@ -680,7 +742,8 @@ async function handleSession(session) {
     rowsCache.clear();
     countsFetchedAt = 0;
     clearMessage(feedMessage);
-    clearMessage(listMessage);
+    clearQueueState();
+    updateQueueTitle(0);
     return;
   }
 
@@ -809,7 +872,8 @@ async function boot() {
         renderRows(currentRows);
       } else {
         thoughtsList.replaceChildren();
-        showLoadingMessage(listMessage, `Loading ${nextFilter} thoughts…`);
+        updateQueueTitle(getCurrentFilterCount());
+        showQueueState(`Loading ${nextFilter} thoughts…`, "loading");
       }
 
       try {
@@ -833,12 +897,11 @@ async function boot() {
     }
   });
 
-  listMessage?.addEventListener("click", (event) => {
-    const closeButton = event.target.closest("[data-alert-close]");
-
-    if (closeButton) {
-      clearMessage(listMessage);
-    }
+  reviewQueueButton?.addEventListener("click", () => {
+    queueSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(() => {
+      queueSection?.focus({ preventScroll: true });
+    }, 180);
   });
 
   thoughtsList?.addEventListener("click", async (event) => {
@@ -909,9 +972,10 @@ async function boot() {
   );
 
   setCurrentFilter(currentFilter);
+  updateQueueTitle(getCurrentFilterCount());
 
   if (session) {
-    showLoadingMessage(listMessage, `Loading ${currentFilter} thoughts…`);
+    showQueueState(`Loading ${currentFilter} thoughts…`, "loading");
   }
 
   await handleSession(session);

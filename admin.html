@@ -135,7 +135,10 @@
             <div class="workspace-sidebar-divider"></div>
 
             <section class="ui-note workspace-sidebar-note" data-sync-note>
-              Approved thoughts publish automatically on the next hourly sync.
+              <span class="workspace-sidebar-note-icon" aria-hidden="true"></span>
+              <span class="workspace-sidebar-note-copy">
+                Approved thoughts publish automatically on the next hourly sync.
+              </span>
             </section>
           </aside>
 
@@ -158,10 +161,21 @@
 
             <div class="ui-alert-feed">
               <section class="ui-panel ui-alert" data-feed-message hidden></section>
-              <section class="ui-panel ui-alert" data-list-message hidden></section>
             </div>
 
-            <section class="ui-thought-list" data-thoughts-list></section>
+            <section class="ui-queue" data-queue-section tabindex="-1">
+              <div class="ui-queue-head">
+                <div class="ui-queue-head-copy">
+                  <p class="ui-kicker">WORKSPACE</p>
+                  <h3 class="ui-queue-title" data-queue-title>Pending Queue (0)</h3>
+                </div>
+                <button class="ui-button ui-button--outline ui-button--toolbar" type="button" data-review-queue>
+                  Review queue
+                </button>
+              </div>
+              <section class="ui-queue-empty" data-list-message hidden></section>
+              <section class="ui-thought-list" data-thoughts-list></section>
+            </section>
           </div>
         </section>
       </main>
