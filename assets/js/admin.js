@@ -24,21 +24,13 @@ let currentCounts = {
   all: 0,
 };
 
-function getMessageStatusLabel(status) {
-  if (!status) {
-    return "Notice";
-  }
-
-  return getStatusLabel(status);
-}
-
 function showMessage(element, message, options = {}) {
   if (!element) {
     return;
   }
 
   const status = options.status || "hidden";
-  const label = options.label || getMessageStatusLabel(status);
+  const label = options.label || (status ? getStatusLabel(status) : "Notice");
 
   element.hidden = false;
   element.dataset.status = status;

@@ -445,10 +445,6 @@ a {
   background: var(--admin-muted);
 }
 
-.ui-button--ghost {
-  border-color: transparent;
-}
-
 .ui-button--muted {
   border-color: var(--admin-border);
   background: var(--admin-muted);
@@ -480,10 +476,6 @@ a {
 .ui-thought-card[data-status="pending"] .ui-button[data-tone="reject"]:hover {
   border-color: var(--status-rejected-fg);
   background: var(--status-rejected-fg);
-}
-
-.ui-button--full {
-  width: 100%;
 }
 
 .ui-button__icon {

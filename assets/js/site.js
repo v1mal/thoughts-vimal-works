@@ -201,13 +201,6 @@ function openShareWindow(url) {
   }
 }
 
-function highlightThoughtCard(card) {
-  card.classList.add("is-highlighted");
-  window.setTimeout(() => {
-    card.classList.remove("is-highlighted");
-  }, 2200);
-}
-
 function getThoughtById(thoughtId) {
   return allThoughts.find((thought) => thought.id === thoughtId) || null;
 }
@@ -244,7 +237,7 @@ function openThoughtModal(thought) {
   thoughtModalText.textContent = thought.text;
   thoughtModalDate.textContent = formatDate(thought.timestamp);
   thoughtModalDate.dateTime = thought.timestamp;
-  thoughtModalLink.href = buildThoughtUrl(thought.id);
+  thoughtModalLink.href = canonicalSiteUrl;
 
   thoughtModalOverlay.hidden = false;
   document.body.style.overflow = "hidden";
