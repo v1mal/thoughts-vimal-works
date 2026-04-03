@@ -1,6 +1,11 @@
 {
   "thoughts": [
     {
+      "id": "20260403-131354",
+      "text": "The tide does not come in. The land sits at the bottom of a liquid atmosphere, and twice a day the depth changes.",
+      "timestamp": "2026-04-03T07:43:54+00:00"
+    },
+    {
       "id": "20260403-122448",
       "text": "The body falling toward sleep flinches awake not from fear but from a kind of disbelief, as though gravity required a second opinion.",
       "timestamp": "2026-04-03T06:54:48+00:00"
@@ -161,16 +166,6 @@
       "timestamp": "2026-03-25T07:30:08+00:00"
     },
     {
-      "id": "20260325-090006",
-      "text": "The athlete trains to disappear into the motion. The philosopher trains to notice it. Neither reaches the movement itself, which was never waiting.",
-      "timestamp": "2026-03-25T03:30:06+00:00"
-    },
-    {
-      "id": "20260325-053713",
-      "text": "Colour has no edges. We named them anyway, then forgot we did that, and started arguing about where blue ends.",
-      "timestamp": "2026-03-25T00:07:13+00:00"
-    },
-    {
       "id": "20260325-053419",
       "text": "Scarcity assumes the thing being divided is fixed. But attention, unlike grain, grows stranger the more it's split — less commodity, more weather.",
       "timestamp": "2026-03-25T00:04:19+00:00"
@@ -186,11 +181,6 @@
       "timestamp": "2026-03-25T00:00:12+00:00"
     },
     {
-      "id": "20260325-052500",
-      "text": "The sprinter doesn't beat the clock. She makes the clock irrelevant for exactly nine seconds, which is maybe the only form of freedom that leaves a measurable scar.",
-      "timestamp": "2026-03-24T23:55:00+00:00"
-    },
-    {
       "id": "20260325-043552",
       "text": "Salt doesn't flavor food — it lowers the threshold at which food tastes like itself. Every act of attention might work the same way.",
       "timestamp": "2026-03-24T23:05:52+00:00"
@@ -199,11 +189,6 @@
       "id": "20260325-042406",
       "text": "The child doesn't wonder who she is. She wonders where the beetle went. Identity is a problem that arrives later, like furniture.",
       "timestamp": "2026-03-24T22:54:06+00:00"
-    },
-    {
-      "id": "20260325-041905",
-      "text": "Colour has no edge. We draw one anyway, then spend centuries arguing about where exactly blue becomes green, as if the argument were about the spectrum and not about us.",
-      "timestamp": "2026-03-24T22:49:05+00:00"
     },
     {
       "id": "20260325-040200",
@@ -234,36 +219,6 @@
       "id": "20260325-022027",
       "text": "Every map is also a decision about what not to name. The unnamed places don't disappear. They just become available to whoever arrives without a legend.",
       "timestamp": "2026-03-24T20:50:27+00:00"
-    },
-    {
-      "id": "20260324-213001",
-      "text": "The best systems feel inevitable only after someone does the hard work of making them coherent.",
-      "timestamp": "2026-03-24T16:00:01+00:00"
-    },
-    {
-      "id": "20260324-173522",
-      "text": "A personal archive becomes useful the moment it starts helping you notice patterns you would have otherwise missed.",
-      "timestamp": "2026-03-24T12:05:22+00:00"
-    },
-    {
-      "id": "20260324-141018",
-      "text": "Simplicity is rarely the absence of ideas. More often, it is the result of choosing which ideas get to stay visible.",
-      "timestamp": "2026-03-24T08:40:18+00:00"
-    },
-    {
-      "id": "20260323-201544",
-      "text": "The rhythm of a page matters as much as the information on it. Layout is part of meaning.",
-      "timestamp": "2026-03-23T14:45:44+00:00"
-    },
-    {
-      "id": "20260323-090812",
-      "text": "Tools become trustworthy when they make the next step obvious without pretending the whole path is easy.",
-      "timestamp": "2026-03-23T03:38:12+00:00"
-    },
-    {
-      "id": "20260322-183001",
-      "text": "A good note does not preserve a thought perfectly. It preserves enough structure for the thought to happen again later.",
-      "timestamp": "2026-03-22T13:00:01+00:00"
     }
   ]
 }
