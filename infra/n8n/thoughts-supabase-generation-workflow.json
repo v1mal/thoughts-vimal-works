@@ -23,7 +23,7 @@
     },
     {
       "parameters": {
-        "jsCode": "return [{\n  json: {\n    anthropicModel: \"claude-opus-4-6\",\n    reviewModel: \"claude-sonnet-4-6\",\n    supabaseUrl: \"https://jibqnhaojplcvzqfxfiu.supabase.co\",\n    notificationEmail: \"vimal@nusigma.in\"\n  }\n}];\n"
+        "jsCode": "return [{\n  json: {\n    anthropicModel: \"claude-opus-4-6\",\n    reviewModel: \"gpt-5.4\",\n    supabaseUrl: \"https://jibqnhaojplcvzqfxfiu.supabase.co\",\n    notificationEmail: \"vimal@nusigma.in\"\n  }\n}];\n"
       },
       "id": "00484167-07ef-4cf5-8a4f-d462de1cccdb",
       "name": "Config",
@@ -129,7 +129,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const thought = $input.first().json.thought;\nconst reviewModel = $('Config').item.json.reviewModel;\n\nreturn [{\n  json: {\n    thought,\n    requestBody: {\n      model: reviewModel,\n      max_tokens: 220,\n      temperature: 0,\n      system: `You are a strict literary editor reviewing short philosophical prose for originality, clarity, and tone.\n\nMandatory checks (fail the thought if either is missing):\n- Does the thought challenge, invert, or expose an assumption? If it merely observes or describes without questioning a default belief, reject it.\n- Is the thought grounded in something specific and concrete? If you cannot identify the material anchor (a substance, a process, a place, a sensation), reject it.\n\nJudge the text using these standards:\n- original rather than derivative\n- concrete rather than vague\n- thoughtful rather than motivational\n- precise rather than bloated\n- unresolved in an interesting way rather than neatly concluded\n- structurally distinctive rather than following a familiar template\n\nReject anything that sounds like:\n- advice\n- a slogan\n- a tweet-sized life lesson\n- filler dressed up as depth\n- generic AI quote writing\n\nReject anything that uses these structural patterns:\n- \"X doesn't do Y. It does Z.\" followed by a turn back to the human condition\n- Two or three compressed ideas pretending to be one thought\n- An ending that makes the insight about \"us\" or \"perception\" or \"naming\" in general\n- Any variation of \"we drew a line and then forgot we drew it\"\n- Thoughts containing em dashes\n\nScore harshly. A 7 is competent but forgettable. An 8 means you would genuinely want to read it again. A 9 means it surprised you. A 10 is almost never warranted.\n\nReturn valid JSON only in this shape:\n{\n  \"approved\": true,\n  \"score\": 0,\n  \"reason\": \"\",\n  \"suggestion\": \"\"\n}\n\nRules:\n- approved must be true only if the text is strong enough to publish unchanged\n- score must be an integer from 1 to 10\n- reason should be one sentence explaining the score\n- if approved is false, suggestion must describe what specifically failed and what a better version would do differently\n- if approved is true, suggestion should be empty`,\n      messages: [\n        {\n          role: 'user',\n          content: `Review this thought for publication:\\n\\n${thought}`\n        }\n      ]\n    }\n  }\n}];"
+        "jsCode": "const thought = $input.first().json.thought;\nconst reviewModel = $('Config').item.json.reviewModel;\n\nreturn [{\n  json: {\n    thought,\n    requestBody: {\n      model: reviewModel,\n      max_completion_tokens: 220,\n      temperature: 0,\n      messages: [\n        {\n          role: 'system',\n          content: `You are a strict literary editor reviewing short philosophical prose for originality, clarity, and tone.\n\nMandatory checks (fail the thought if either is missing):\n- Does the thought challenge, invert, or expose an assumption? If it merely observes or describes without questioning a default belief, reject it.\n- Is the thought grounded in something specific and concrete? If you cannot identify the material anchor (a substance, a process, a place, a sensation), reject it.\n\nJudge the text using these standards:\n- original rather than derivative\n- concrete rather than vague\n- thoughtful rather than motivational\n- precise rather than bloated\n- unresolved in an interesting way rather than neatly concluded\n- structurally distinctive rather than following a familiar template\n\nReject anything that sounds like:\n- advice\n- a slogan\n- a tweet-sized life lesson\n- filler dressed up as depth\n- generic AI quote writing\n\nReject anything that uses these structural patterns:\n- \"X doesn't do Y. It does Z.\" followed by a turn back to the human condition\n- Two or three compressed ideas pretending to be one thought\n- An ending that makes the insight about \"us\" or \"perception\" or \"naming\" in general\n- Any variation of \"we drew a line and then forgot we drew it\"\n- Thoughts containing em dashes\n\nScore harshly. A 7 is competent but forgettable. An 8 means you would genuinely want to read it again. A 9 means it surprised you. A 10 is almost never warranted.\n\nReturn valid JSON only in this shape:\n{\n  \"approved\": true,\n  \"score\": 0,\n  \"reason\": \"\",\n  \"suggestion\": \"\"\n}\n\nRules:\n- approved must be true only if the text is strong enough to publish unchanged\n- score must be an integer from 1 to 10\n- reason should be one sentence explaining the score\n- if approved is false, suggestion must describe what specifically failed and what a better version would do differently\n- if approved is true, suggestion should be empty`\n        },\n        {\n          role: 'user',\n          content: `Review this thought for publication:\\n\\n${thought}`\n        }\n      ]\n    }\n  }\n}];"
       },
       "id": "ba0c1643-e0f9-4005-8427-aed305bb6db0",
       "name": "Build Review Request 1",
@@ -143,9 +143,9 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.anthropic.com/v1/messages",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpCustomAuth",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{$json.requestBody}}",
@@ -162,15 +162,15 @@
       "retryOnFail": true,
       "waitBetweenTries": 5000,
       "credentials": {
-        "httpCustomAuth": {
-          "id": "ioTahebaHHnp7TJg",
-          "name": "Anthropic Custom Auth"
+        "openAiApi": {
+          "id": "",
+          "name": ""
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "const response = $input.first().json;\nconst thought = $('Extract Thought 1').item.json.thought;\n\nif (thought.length < 90 || thought.length > 220) {\n  return [{\n    json: {\n      approved: false,\n      score: 0,\n      reason: `Length ${thought.length} chars (must be 90-220).`,\n      suggestion: 'Thought failed length validation. Generate a new thought between 90 and 220 characters.'\n    }\n  }];\n}\n\nconst content = Array.isArray(response.content) ? response.content : [];\nconst firstTextBlock = content.find((item) => item.type === 'text');\nconst rawText = firstTextBlock?.text || '';\n\nlet parsed;\n\ntry {\n  parsed = JSON.parse(rawText.trim());\n} catch {\n  try {\n    const stripped = rawText\n      .replace(/^\\s*```(?:json)?\\s*/i, '')\n      .replace(/\\s*```\\s*$/s, '')\n      .trim();\n\n    parsed = JSON.parse(stripped);\n  } catch {\n    const jsonMatch = rawText.match(/\\{[\\s\\S]*\\}/);\n\n    if (jsonMatch) {\n      try {\n        parsed = JSON.parse(jsonMatch[0].trim());\n      } catch {\n        parsed = {\n          approved: false,\n          score: 0,\n          reason: 'Review response was not valid JSON.',\n          suggestion: rawText\n        };\n      }\n    } else {\n      parsed = {\n        approved: false,\n        score: 0,\n        reason: 'Review response was not valid JSON.',\n        suggestion: rawText\n      };\n    }\n  }\n}\n\nreturn [{ json: parsed }];\n"
+        "jsCode": "const response = $input.first().json;\nconst thought = $('Extract Thought 1').item.json.thought;\n\nif (thought.length < 90 || thought.length > 220) {\n  return [{\n    json: {\n      approved: false,\n      score: 0,\n      reason: `Length ${thought.length} chars (must be 90-220).`,\n      suggestion: 'Thought failed length validation. Generate a new thought between 90 and 220 characters.'\n    }\n  }];\n}\n\nconst rawText = response.choices?.[0]?.message?.content || '';\n\nlet parsed;\n\ntry {\n  parsed = JSON.parse(rawText.trim());\n} catch {\n  try {\n    const stripped = rawText\n      .replace(/^\\s*```(?:json)?\\s*/i, '')\n      .replace(/\\s*```\\s*$/s, '')\n      .trim();\n\n    parsed = JSON.parse(stripped);\n  } catch {\n    const jsonMatch = rawText.match(/\\{[\\s\\S]*\\}/);\n\n    if (jsonMatch) {\n      try {\n        parsed = JSON.parse(jsonMatch[0].trim());\n      } catch {\n        parsed = {\n          approved: false,\n          score: 0,\n          reason: 'Review response was not valid JSON.',\n          suggestion: rawText\n        };\n      }\n    } else {\n      parsed = {\n        approved: false,\n        score: 0,\n        reason: 'Review response was not valid JSON.',\n        suggestion: rawText\n      };\n    }\n  }\n}\n\nreturn [{ json: parsed }];\n"
       },
       "id": "754b8e9d-d62b-471a-a5c7-355b0e90a390",
       "name": "Parse Review 1",
@@ -279,7 +279,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const thought = $input.first().json.thought;\nconst reviewModel = $('Config').item.json.reviewModel;\n\nreturn [{\n  json: {\n    thought,\n    requestBody: {\n      model: reviewModel,\n      max_tokens: 220,\n      temperature: 0,\n      system: `You are a strict literary editor reviewing short philosophical prose for originality, clarity, and tone.\n\nMandatory checks (fail the thought if either is missing):\n- Does the thought challenge, invert, or expose an assumption? If it merely observes or describes without questioning a default belief, reject it.\n- Is the thought grounded in something specific and concrete? If you cannot identify the material anchor (a substance, a process, a place, a sensation), reject it.\n\nJudge the text using these standards:\n- original rather than derivative\n- concrete rather than vague\n- thoughtful rather than motivational\n- precise rather than bloated\n- unresolved in an interesting way rather than neatly concluded\n- structurally distinctive rather than following a familiar template\n\nReject anything that sounds like:\n- advice\n- a slogan\n- a tweet-sized life lesson\n- filler dressed up as depth\n- generic AI quote writing\n\nReject anything that uses these structural patterns:\n- \"X doesn't do Y. It does Z.\" followed by a turn back to the human condition\n- Two or three compressed ideas pretending to be one thought\n- An ending that makes the insight about \"us\" or \"perception\" or \"naming\" in general\n- Any variation of \"we drew a line and then forgot we drew it\"\n- Thoughts containing em dashes\n\nScore harshly. A 7 is competent but forgettable. An 8 means you would genuinely want to read it again. A 9 means it surprised you. A 10 is almost never warranted.\n\nReturn valid JSON only in this shape:\n{\n  \"approved\": true,\n  \"score\": 0,\n  \"reason\": \"\",\n  \"suggestion\": \"\"\n}\n\nRules:\n- approved must be true only if the text is strong enough to publish unchanged\n- score must be an integer from 1 to 10\n- reason should be one sentence explaining the score\n- if approved is false, suggestion must describe what specifically failed and what a better version would do differently\n- if approved is true, suggestion should be empty`,\n      messages: [\n        {\n          role: 'user',\n          content: `Review this thought for publication:\\n\\n${thought}`\n        }\n      ]\n    }\n  }\n}];"
+        "jsCode": "const thought = $input.first().json.thought;\nconst reviewModel = $('Config').item.json.reviewModel;\n\nreturn [{\n  json: {\n    thought,\n    requestBody: {\n      model: reviewModel,\n      max_completion_tokens: 220,\n      temperature: 0,\n      messages: [\n        {\n          role: 'system',\n          content: `You are a strict literary editor reviewing short philosophical prose for originality, clarity, and tone.\n\nMandatory checks (fail the thought if either is missing):\n- Does the thought challenge, invert, or expose an assumption? If it merely observes or describes without questioning a default belief, reject it.\n- Is the thought grounded in something specific and concrete? If you cannot identify the material anchor (a substance, a process, a place, a sensation), reject it.\n\nJudge the text using these standards:\n- original rather than derivative\n- concrete rather than vague\n- thoughtful rather than motivational\n- precise rather than bloated\n- unresolved in an interesting way rather than neatly concluded\n- structurally distinctive rather than following a familiar template\n\nReject anything that sounds like:\n- advice\n- a slogan\n- a tweet-sized life lesson\n- filler dressed up as depth\n- generic AI quote writing\n\nReject anything that uses these structural patterns:\n- \"X doesn't do Y. It does Z.\" followed by a turn back to the human condition\n- Two or three compressed ideas pretending to be one thought\n- An ending that makes the insight about \"us\" or \"perception\" or \"naming\" in general\n- Any variation of \"we drew a line and then forgot we drew it\"\n- Thoughts containing em dashes\n\nScore harshly. A 7 is competent but forgettable. An 8 means you would genuinely want to read it again. A 9 means it surprised you. A 10 is almost never warranted.\n\nReturn valid JSON only in this shape:\n{\n  \"approved\": true,\n  \"score\": 0,\n  \"reason\": \"\",\n  \"suggestion\": \"\"\n}\n\nRules:\n- approved must be true only if the text is strong enough to publish unchanged\n- score must be an integer from 1 to 10\n- reason should be one sentence explaining the score\n- if approved is false, suggestion must describe what specifically failed and what a better version would do differently\n- if approved is true, suggestion should be empty`\n        },\n        {\n          role: 'user',\n          content: `Review this thought for publication:\\n\\n${thought}`\n        }\n      ]\n    }\n  }\n}];"
       },
       "id": "2d922b97-4ad9-486f-ae35-98c3f829c47f",
       "name": "Build Review Request 2",
@@ -293,9 +293,9 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.anthropic.com/v1/messages",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpCustomAuth",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{$json.requestBody}}",
@@ -312,15 +312,15 @@
       "retryOnFail": true,
       "waitBetweenTries": 5000,
       "credentials": {
-        "httpCustomAuth": {
-          "id": "ioTahebaHHnp7TJg",
-          "name": "Anthropic Custom Auth"
+        "openAiApi": {
+          "id": "",
+          "name": ""
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "const response = $input.first().json;\nconst thought = $('Extract Thought 2').item.json.thought;\n\nif (thought.length < 90 || thought.length > 220) {\n  return [{\n    json: {\n      approved: false,\n      score: 0,\n      reason: `Length ${thought.length} chars (must be 90-220).`,\n      suggestion: 'Thought failed length validation. Generate a new thought between 90 and 220 characters.'\n    }\n  }];\n}\n\nconst content = Array.isArray(response.content) ? response.content : [];\nconst firstTextBlock = content.find((item) => item.type === 'text');\nconst rawText = firstTextBlock?.text || '';\n\nlet parsed;\n\ntry {\n  parsed = JSON.parse(rawText.trim());\n} catch {\n  try {\n    const stripped = rawText\n      .replace(/^\\s*```(?:json)?\\s*/i, '')\n      .replace(/\\s*```\\s*$/s, '')\n      .trim();\n\n    parsed = JSON.parse(stripped);\n  } catch {\n    const jsonMatch = rawText.match(/\\{[\\s\\S]*\\}/);\n\n    if (jsonMatch) {\n      try {\n        parsed = JSON.parse(jsonMatch[0].trim());\n      } catch {\n        parsed = {\n          approved: false,\n          score: 0,\n          reason: 'Review response was not valid JSON.',\n          suggestion: rawText\n        };\n      }\n    } else {\n      parsed = {\n        approved: false,\n        score: 0,\n        reason: 'Review response was not valid JSON.',\n        suggestion: rawText\n      };\n    }\n  }\n}\n\nreturn [{ json: parsed }];\n"
+        "jsCode": "const response = $input.first().json;\nconst thought = $('Extract Thought 2').item.json.thought;\n\nif (thought.length < 90 || thought.length > 220) {\n  return [{\n    json: {\n      approved: false,\n      score: 0,\n      reason: `Length ${thought.length} chars (must be 90-220).`,\n      suggestion: 'Thought failed length validation. Generate a new thought between 90 and 220 characters.'\n    }\n  }];\n}\n\nconst rawText = response.choices?.[0]?.message?.content || '';\n\nlet parsed;\n\ntry {\n  parsed = JSON.parse(rawText.trim());\n} catch {\n  try {\n    const stripped = rawText\n      .replace(/^\\s*```(?:json)?\\s*/i, '')\n      .replace(/\\s*```\\s*$/s, '')\n      .trim();\n\n    parsed = JSON.parse(stripped);\n  } catch {\n    const jsonMatch = rawText.match(/\\{[\\s\\S]*\\}/);\n\n    if (jsonMatch) {\n      try {\n        parsed = JSON.parse(jsonMatch[0].trim());\n      } catch {\n        parsed = {\n          approved: false,\n          score: 0,\n          reason: 'Review response was not valid JSON.',\n          suggestion: rawText\n        };\n      }\n    } else {\n      parsed = {\n        approved: false,\n        score: 0,\n        reason: 'Review response was not valid JSON.',\n        suggestion: rawText\n      };\n    }\n  }\n}\n\nreturn [{ json: parsed }];\n"
       },
       "id": "f1b99d11-831c-469d-92bc-817e7e8f76f8",
       "name": "Parse Review 2",
